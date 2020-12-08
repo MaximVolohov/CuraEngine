@@ -1310,6 +1310,9 @@ namespace cura
                                                             .extruder_nr];
         bool fiber_extruder = infill_extruder.settings.get<bool>("machine_fiber_extruder");
         bool current_extruder_is_fiber = extruder_nr == infill_extruder.extruder_nr;
+        int start_layer = mesh.settings.get<size_t>("reinforcement_start_layer");
+        int layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
+
         if (!fiber_extruder && !current_extruder_is_fiber)
         {
             return false;
@@ -1420,33 +1423,54 @@ namespace cura
 
                 for (PolygonRef poly : infill_polygons)
                 {
-                    // polylines for fiber extruder
-                    if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
+                    if (gcode_layer.getLayerNr() >= (start_layer - 1) && gcode_layer.getLayerNr() < start_layer + layer_count - 1)
                     {
-                        printable_infill_polygons.add(poly);
+                        // polylines for fiber extruder
+                        if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
+                        {
+                            printable_infill_polygons.add(poly);
+                        }
+                        // polylines for plastic extruder
+                        if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
+                        {
+                            printable_infill_polygons.add(poly);
+                        }
                     }
-                    // polylines for plastic extruder
-                    if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
+                    else if (!current_extruder_is_fiber)
                     {
                         printable_infill_polygons.add(poly);
                     }
                 }
                 for (PolygonRef poly : possibly_printable_infill_polygons)
                 {
-                    // polylines for fiber extruder
-                    if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
+                    if (gcode_layer.getLayerNr() >= (start_layer - 1) && gcode_layer.getLayerNr() < start_layer + layer_count - 1)
                     {
-                        if (poly.size() > 2)
+                        // polylines for fiber extruder
+                        if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
                         {
-                            printable_infill_polygons.add(poly);
+                            if (poly.size() > 2)
+                            {
+                                printable_infill_polygons.add(poly);
+                            }
+                            else
+                            {
+                                printable_infill_lines.add(poly);
+                            }
                         }
-                        else
+                        // polylines for plastic extruder
+                        if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
                         {
-                            printable_infill_lines.add(poly);
+                            if (poly.size() > 2)
+                            {
+                                printable_infill_polygons.add(poly);
+                            }
+                            else
+                            {
+                                printable_infill_lines.add(poly);
+                            }
                         }
                     }
-                    // polylines for plastic extruder
-                    if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
+                    else if (!current_extruder_is_fiber)
                     {
                         if (poly.size() > 2)
                         {
