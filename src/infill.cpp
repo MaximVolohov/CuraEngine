@@ -39,7 +39,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 namespace cura
 {
 
-    void Infill::generate(Polygons &result_polygons, Polygons &result_lines, const SierpinskiFillProvider *cross_fill_provider, const SliceMeshStorage *mesh)
+    void Infill::generate(Polygons &result_polygons, Polygons &result_lines, Polygons &result_gaps, const SierpinskiFillProvider *cross_fill_provider, const SliceMeshStorage *mesh)
     {
         coord_t outline_offset_raw = outline_offset;
         outline_offset -= wall_line_count * infill_line_width; // account for extra walls
@@ -88,6 +88,9 @@ namespace cura
             connector.add(result_polygons);
             result_polygons = connector.connect();
         }
+
+        Polygons convex = result_lines.calcConvexHull();
+        result_gaps = in_outline.difference(convex);
     }
 
     void Infill::_generate(Polygons &result_polygons, Polygons &result_lines, const SierpinskiFillProvider *cross_fill_provider, const SliceMeshStorage *mesh)
@@ -433,7 +436,13 @@ namespace cura
                 //We have to create our own lines when they are not created by the method connectLines.
                 if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES)
                 {
-                    result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
+                    Point start = Point(x, crossings[crossing_idx]);
+                    Point end = Point(x, crossings[crossing_idx + 1]);
+                    if (vSize(start - end) < minimum_infill_line_length)
+                    {
+                        continue;
+                    }
+                    result.addLine(rotation_matrix.unapply(start), rotation_matrix.unapply(end));
                 }
             }
             scanline_idx += 1;
@@ -464,7 +473,7 @@ namespace cura
         const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
         PointMatrix rotation_matrix(infill_rotation);
-        ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count, minimum_zag_line_length);
+        ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
         generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
     }
 
@@ -608,6 +617,7 @@ namespace cura
                     assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                     cut_list[scanline_idx - scanline_min_idx].push_back(y);
                     Point scanline_linesegment_intersection(x, y);
+
                     zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx);
                     crossings_per_scanline[scanline_idx - min_scanline_index].emplace_back(scanline_linesegment_intersection, poly_idx, point_idx);
                 }

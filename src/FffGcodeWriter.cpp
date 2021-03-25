@@ -566,6 +566,7 @@ namespace cura
             gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.raft_base_config);
 
             Polygons raftLines;
+            Polygons output_gaps;
             double fill_angle = 0;
             constexpr bool zig_zaggify_infill = false;
             constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
@@ -584,7 +585,7 @@ namespace cura
                 EFillMethod::LINES, zig_zaggify_infill, connect_polygons, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.settings.get<coord_t>("raft_base_line_spacing"),
                 fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
                 wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-            infill_comp.generate(raft_polygons, raftLines);
+            infill_comp.generate(raft_polygons, raftLines, output_gaps);
             gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
             // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
@@ -625,6 +626,7 @@ namespace cura
             raft_outline_path.simplify();                                                                                                   //Remove those micron-movements.
             constexpr coord_t infill_outline_width = 0;
             Polygons raftLines;
+            Polygons output_gaps;
             int offset_from_poly_outline = 0;
             AngleDegrees fill_angle = train.settings.get<size_t>("raft_surface_layers") > 0 ? 45 : 90;
             constexpr bool zig_zaggify_infill = true;
@@ -644,7 +646,7 @@ namespace cura
                 EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.settings.get<coord_t>("raft_interface_line_spacing"),
                 fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
                 wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-            infill_comp.generate(raft_polygons, raftLines);
+            infill_comp.generate(raft_polygons, raftLines, output_gaps);
             gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines);
 
             layer_plan_buffer.handle(gcode_layer, gcode);
@@ -680,6 +682,7 @@ namespace cura
             raft_outline_path.simplify(maximum_resolution);                                                                               //Remove those micron-movements.
             constexpr coord_t infill_outline_width = 0;
             Polygons raft_lines;
+            Polygons output_gaps;
             int offset_from_poly_outline = 0;
             AngleDegrees fill_angle = 90 * raft_surface_layer;
             constexpr bool zig_zaggify_infill = true;
@@ -698,7 +701,7 @@ namespace cura
                 EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.settings.get<coord_t>("raft_surface_line_spacing"),
                 fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
                 wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-            infill_comp.generate(raft_polygons, raft_lines);
+            infill_comp.generate(raft_polygons, raft_lines, output_gaps);
             gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines);
 
             layer_plan_buffer.handle(gcode_layer, gcode);
@@ -1263,6 +1266,7 @@ namespace cura
             const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
             Polygons infill_polygons;
             Polygons infill_lines;
+            Polygons output_gaps;
             for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
             {                                                                              // combine different density infill areas (for gradual infill)
                 size_t density_factor = 2 << density_idx;                                  // == pow(2, density_idx + 1)
@@ -1282,7 +1286,7 @@ namespace cura
                 const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
 
                 Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx], /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution);
-                infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+                infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
             }
             if (!infill_lines.empty() || !infill_polygons.empty())
             {
@@ -1328,7 +1332,7 @@ namespace cura
         //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
         Polygons infill_polygons;
         Polygons infill_lines;
-
+        Polygons output_gaps;
         const EFillMethod pattern = mesh.settings.get<EFillMethod>("infill_pattern");
         const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
         const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
@@ -1387,8 +1391,8 @@ namespace cura
             // especially on vertical surfaces
             in_outline.removeSmallAreas(minimum_small_area);
 
-            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, /*Polygons* perimeter_gaps =*/nullptr, /*bool connected_zigzags =*/false, /*bool use_endpieces =*/false, /*bool skip_some_zags =*/false, /*int zag_skip_count =*/0, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution);
-            infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, /*Polygons* perimeter_gaps =*/nullptr, /*bool connected_zigzags =*/false, /*bool use_endpieces =*/false, /*bool skip_some_zags =*/false, /*int zag_skip_count =*/0, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution, 5500);
+            infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
         }
 
         //TODO: combine infill lines for fiber printing
@@ -1508,6 +1512,11 @@ namespace cura
                 gcode_layer.addLinesByOptimizer(printable_infill_lines, mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization);
             }
         }
+        if (output_gaps.size() > 0)
+        {
+            processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, output_gaps, mesh_config.perimeter_gap_config, added_something);
+        }
+
         return added_something;
     }
 
@@ -1812,6 +1821,7 @@ namespace cura
         }
         Polygons gap_polygons; // unused
         Polygons gap_lines;    // soon to be generated gap filler lines
+        Polygons output_gaps;
         int offset = 0;
         int extra_infill_shift = 0;
         constexpr coord_t outline_gap_overlap = 0;
@@ -1832,7 +1842,7 @@ namespace cura
         Infill infill_comp(
             EFillMethod::LINES, zig_zaggify_infill, connect_polygons, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-        infill_comp.generate(gap_polygons, gap_lines);
+        infill_comp.generate(gap_polygons, gap_lines, output_gaps);
 
         if (gap_lines.size() > 0)
         {
@@ -2149,6 +2159,7 @@ namespace cura
     {
         Polygons skin_polygons;
         Polygons skin_lines;
+        Polygons output_gaps;
 
         constexpr int infill_multiplier = 1;
         constexpr int extra_infill_shift = 0;
@@ -2167,7 +2178,7 @@ namespace cura
         Infill infill_comp(
             pattern, zig_zaggify_infill, connect_polygons, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift, wall_line_count, infill_origin, perimeter_gaps_output,
             connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-        infill_comp.generate(skin_polygons, skin_lines);
+        infill_comp.generate(skin_polygons, skin_lines, output_gaps);
 
         // add paths
         if (skin_polygons.size() > 0 || skin_lines.size() > 0)
@@ -2214,6 +2225,7 @@ namespace cura
         int perimeter_gaps_angle = mesh.roofing_angles[gcode_layer.getLayerNr() % mesh.roofing_angles.size()]; // use roofing angles for perimeter gaps
         Polygons gap_polygons;                                                                                 // will remain empty
         Polygons gap_lines;
+        Polygons output_gaps;
         constexpr int offset = 0;
         constexpr int infill_multiplier = 1;
         constexpr int extra_infill_shift = 0;
@@ -2231,7 +2243,7 @@ namespace cura
         Infill infill_comp(
             EFillMethod::LINES, zig_zaggify_infill, connect_polygons, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, infill_multiplier, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift,
             wall_line_count, infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-        infill_comp.generate(gap_polygons, gap_lines);
+        infill_comp.generate(gap_polygons, gap_lines, output_gaps);
         if (gap_lines.size() > 0)
         {
             added_something = true;
@@ -2375,6 +2387,7 @@ namespace cura
 
                 Polygons support_polygons;
                 Polygons support_lines;
+                Polygons output_gaps;
                 for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
                 {
                     if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
@@ -2403,7 +2416,7 @@ namespace cura
                                        support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
                                        perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
                                        skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
-                    infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_provider);
+                    infill_comp.generate(support_polygons, support_lines, output_gaps, storage.support.cross_fill_provider);
                 }
 
                 if (support_lines.size() > 0 || support_polygons.size() > 0)
@@ -2478,7 +2491,8 @@ namespace cura
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
         Polygons roof_polygons;
         Polygons roof_lines;
-        roof_computation.generate(roof_polygons, roof_lines);
+        Polygons output_gaps;
+        roof_computation.generate(roof_polygons, roof_lines, output_gaps);
         if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_polygons.empty() && roof_lines.empty()))
         {
             return false; //We didn't create any support roof.
@@ -2536,7 +2550,8 @@ namespace cura
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size, maximum_resolution);
         Polygons bottom_polygons;
         Polygons bottom_lines;
-        bottom_computation.generate(bottom_polygons, bottom_lines);
+        Polygons output_gaps;
+        bottom_computation.generate(bottom_polygons, bottom_lines, output_gaps);
         if (bottom_polygons.empty() && bottom_lines.empty())
         {
             return false;
