@@ -1454,25 +1454,27 @@ namespace cura
                     const double path_fan_speed = path.getFanSpeed();
                     gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
-                    bool coasting = extruder.settings.get<bool>("coasting_enable");
                     bool fiber_printing = extruder.settings.get<bool>("machine_fiber_extruder");
-                    if (fiber_printing)
+                    if (!fiber_printing)
                     {
-                        coasting = false;
+                        bool coasting = extruder.settings.get<bool>("coasting_enable");
+                        if (coasting)
+                        {
+                            coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness);
+                        }
+                        if (!coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
+                        {              // normal path to gcode algorithm
+                            for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                            {
+                                communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
+                                gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
+                            }
+                        }
+                    }
+                    else
+                    {
                         fiber_printing = writePathWithFiberCut(
                             gcode, extruder_plan_idx, path_idx, layer_thickness);
-                    }
-                    if (coasting)
-                    {
-                        coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness);
-                    }
-                    if (!coasting && !fiber_printing) // not same as 'else', cause we might have changed [coasting] in the line above...
-                    {                                 // normal path to gcode algorithm
-                        for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
-                        {
-                            communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
-                            gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
-                        }
                     }
                 }
                 else
