@@ -87,7 +87,7 @@ namespace cura
      * \param contructor_args The arguments for the constructor of an insert
      */
       template <typename... Args>
-      void insertCommand(Args &&... contructor_args)
+      void insertCommand(Args &&...contructor_args)
       {
          inserts.emplace_back(contructor_args...);
       }
@@ -415,7 +415,7 @@ namespace cura
      * \return Whether the extruder has changed. It won't have changed if we
      * were already on this extruder.
      */
-      bool setExtruder(const size_t extruder_nr);
+      bool setExtruder(const size_t extruder_nr, bool no_extruder_plan = false);
 
       /*!
      * Get the last planned extruder.

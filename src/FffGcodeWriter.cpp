@@ -1022,10 +1022,9 @@ namespace cura
         const Settings &mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
         size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
         assert(static_cast<int>(extruder_count) > 0);
-        std::vector<size_t> ret;
-        ret.push_back(start_extruder);
-        std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
 
+        std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
+        bool start_extruder_is_fiber = Application::getInstance().current_slice->scene.extruders[start_extruder].settings.get<bool>("machine_fiber_extruder");
         //The outermost prime tower extruder is always used if there is a prime tower.
         if (mesh_group_settings.get<bool>("prime_tower_enable") && layer_nr <= storage.max_print_height_second_to_last_extruder)
         {
@@ -1045,6 +1044,15 @@ namespace cura
             }
         }
 
+        std::vector<size_t> ret;
+        if (!extruder_is_used_on_this_layer[start_extruder] && start_extruder_is_fiber)
+        {
+        }
+        else
+        {
+            ret.push_back(start_extruder);
+        }
+
         for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
             if (extruder_nr == start_extruder)
@@ -1055,7 +1063,14 @@ namespace cura
             {
                 continue;
             }
-            ret.push_back(extruder_nr);
+            if (start_extruder_is_fiber && !ret.empty())
+            {
+                ret.insert(ret.begin() + ret.size() - 1, extruder_nr);
+            }
+            else
+            {
+                ret.push_back(extruder_nr);
+            }
         }
         assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");
         return ret;
