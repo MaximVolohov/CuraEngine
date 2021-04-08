@@ -1391,7 +1391,7 @@ namespace cura
             // especially on vertical surfaces
             in_outline.removeSmallAreas(minimum_small_area);
 
-            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, /*Polygons* perimeter_gaps =*/nullptr, /*bool connected_zigzags =*/false, /*bool use_endpieces =*/false, /*bool skip_some_zags =*/false, /*int zag_skip_count =*/0, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution, 5500);
+            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, /*Polygons* perimeter_gaps =*/nullptr, /*bool connected_zigzags =*/false, /*bool use_endpieces =*/false, /*bool skip_some_zags =*/false, /*int zag_skip_count =*/0, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution, mesh.settings.get<coord_t>("reinforcement_min_fiber_line_length"));
             infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
         }
 

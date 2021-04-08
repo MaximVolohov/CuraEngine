@@ -137,7 +137,7 @@ namespace cura
             i++;
             pointOnHull = endpoint;
 
-        } while (vSize(endpoint - convex_hull[0]) < 100);
+        } while (endpoint != convex_hull[0]);
 
         ret.add(convex_hull);
         ret.simplify();

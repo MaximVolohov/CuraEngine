@@ -128,9 +128,9 @@ namespace cura
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-    void SkinInfillAreaComputation::generateSkinsAndInfill()
+    void SkinInfillAreaComputation::generateSkinsAndInfill(bool use_skin)
     {
-        generateSkinAndInfillAreas();
+        generateSkinAndInfillAreas(use_skin);
 
         SliceLayer *layer = &mesh.layers[layer_nr];
         for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
@@ -148,7 +148,7 @@ namespace cura
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-    void SkinInfillAreaComputation::generateSkinAndInfillAreas()
+    void SkinInfillAreaComputation::generateSkinAndInfillAreas(bool use_skin)
     {
         SliceLayer &layer = mesh.layers[layer_nr];
 
@@ -165,7 +165,7 @@ namespace cura
             {
                 continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin or infill.
             }
-            generateSkinAndInfillAreas(part);
+            generateSkinAndInfillAreas(part, use_skin);
         }
     }
 
@@ -175,7 +175,7 @@ namespace cura
  *
  * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
  */
-    void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart &part)
+    void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart &part, bool use_skin)
     {
 
         Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
@@ -200,6 +200,10 @@ namespace cura
 
         // now combine the resized upskin and downskin
         Polygons skin = upskin.unionPolygons(downskin);
+        if (use_skin)
+        {
+            skin = skin.unionPolygons(original_outline);
+        }
 
         skin.removeSmallAreas(MIN_AREA_SIZE);
 
