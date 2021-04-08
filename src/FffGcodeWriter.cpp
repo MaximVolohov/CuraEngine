@@ -338,6 +338,17 @@ namespace cura
             }
         }
 
+        if (mesh.fiber_infill_angles.size() == 0)
+        {
+            mesh.fiber_infill_angles = mesh.settings.get<std::vector<AngleDegrees>>("fiber_infill_angles");
+            if (mesh.fiber_infill_angles.size() == 0)
+            {
+                mesh.fiber_infill_angles.push_back(45); // generally all infill patterns use 45 degrees
+                // lines and zig zag patterns default to also using 135 degrees
+                mesh.fiber_infill_angles.push_back(135);
+            }
+        }
+
         if (mesh.roofing_angles.size() == 0)
         {
             mesh.roofing_angles = mesh.settings.get<std::vector<AngleDegrees>>("roofing_angles");
@@ -1195,6 +1206,9 @@ namespace cura
 
         added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
+        //TODO: process fiber infill here
+        added_something = added_something | processFiberInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (added_something && (!mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers"))))
         {
@@ -1312,12 +1326,8 @@ namespace cura
                                              .current_slice->scene
                                              .extruders[mesh.settings.get<ExtruderTrain &>("infill_extruder_nr")
                                                             .extruder_nr];
-        bool fiber_extruder = infill_extruder.settings.get<bool>("machine_fiber_extruder");
-        bool current_extruder_is_fiber = extruder_nr == infill_extruder.extruder_nr;
-        int start_layer = mesh.settings.get<size_t>("reinforcement_start_layer");
-        int layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
 
-        if (!fiber_extruder && !current_extruder_is_fiber)
+        if (extruder_nr != infill_extruder.extruder_nr)
         {
             return false;
         }
@@ -1391,107 +1401,17 @@ namespace cura
             // especially on vertical surfaces
             in_outline.removeSmallAreas(minimum_small_area);
 
-            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, /*Polygons* perimeter_gaps =*/nullptr, /*bool connected_zigzags =*/false, /*bool use_endpieces =*/false, /*bool skip_some_zags =*/false, /*int zag_skip_count =*/0, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution, mesh.settings.get<coord_t>("reinforcement_min_fiber_line_length"));
+            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/0, infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin, /*Polygons* perimeter_gaps =*/nullptr, /*bool connected_zigzags =*/false, /*bool use_endpieces =*/false, /*bool skip_some_zags =*/false, /*int zag_skip_count =*/0, mesh.settings.get<coord_t>("cross_infill_pocket_size"), maximum_resolution, 0);
             infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
         }
-
-        //TODO: combine infill lines for fiber printing
 
         if (infill_lines.size() > 0 || infill_polygons.size() > 0)
         {
             Polygons printable_infill_lines;
             Polygons printable_infill_polygons;
-            Polygons possibly_printable_infill_polygons;
-            Polygon polygon(infill_lines[0]);
-            for (size_t i = 1; i < infill_lines.size(); i++)
-            {
-                Point p0 = polygon.back();
-                Point p1 = infill_lines[i][0];
-                if (p0 == p1)
-                {
-                    polygon.add(infill_lines[i][0]);
-                    polygon.add(infill_lines[i][1]);
-                }
-                else
-                {
-                    possibly_printable_infill_polygons.add(polygon);
-                    polygon = Polygon(infill_lines[i]);
-                }
-            }
-            possibly_printable_infill_polygons.add(polygon);
 
-            if (fiber_extruder)
-            {
-                const double fiber_distance = infill_extruder.settings.get<double>(
-                    "machine_fiber_cut_min_distance");
-
-                for (PolygonRef poly : infill_polygons)
-                {
-                    if (gcode_layer.getLayerNr() >= (start_layer - 1) && gcode_layer.getLayerNr() < start_layer + layer_count - 1)
-                    {
-                        // polylines for fiber extruder
-                        if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
-                        {
-                            printable_infill_polygons.add(poly);
-                        }
-                        // polylines for plastic extruder
-                        if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
-                        {
-                            printable_infill_polygons.add(poly);
-                        }
-                    }
-                    else if (!current_extruder_is_fiber)
-                    {
-                        printable_infill_polygons.add(poly);
-                    }
-                }
-                for (PolygonRef poly : possibly_printable_infill_polygons)
-                {
-                    if (gcode_layer.getLayerNr() >= (start_layer - 1) && gcode_layer.getLayerNr() < start_layer + layer_count - 1)
-                    {
-                        // polylines for fiber extruder
-                        if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
-                        {
-                            if (poly.size() > 2)
-                            {
-                                printable_infill_polygons.add(poly);
-                            }
-                            else
-                            {
-                                printable_infill_lines.add(poly);
-                            }
-                        }
-                        // polylines for plastic extruder
-                        if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
-                        {
-                            if (poly.size() > 2)
-                            {
-                                printable_infill_polygons.add(poly);
-                            }
-                            else
-                            {
-                                printable_infill_lines.add(poly);
-                            }
-                        }
-                    }
-                    else if (!current_extruder_is_fiber)
-                    {
-                        if (poly.size() > 2)
-                        {
-                            printable_infill_polygons.add(poly);
-                        }
-                        else
-                        {
-                            printable_infill_lines.add(poly);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                printable_infill_lines = infill_lines;
-                printable_infill_polygons = infill_polygons;
-            }
+            printable_infill_lines = infill_lines;
+            printable_infill_polygons = infill_polygons;
 
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1500,7 +1420,7 @@ namespace cura
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(printable_infill_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false, !current_extruder_is_fiber);
+                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false);
             }
             const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
@@ -1520,7 +1440,166 @@ namespace cura
         return added_something;
     }
 
-    void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage &storage, LayerPlan &gcode_layer, const PathConfigStorage::MeshPathConfigs &mesh_config, const SliceLayerPart &part) const
+    bool FffGcodeWriter::processFiberInfill(const SliceDataStorage &storage, LayerPlan &gcode_layer, const SliceMeshStorage &mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs &mesh_config, const SliceLayerPart &part) const
+    {
+        ExtruderTrain &fiber_infill_extruder = Application::getInstance()
+                                                   .current_slice->scene
+                                                   .extruders[mesh.settings.get<ExtruderTrain &>("fiber_infill_extruder_nr")
+                                                                  .extruder_nr];
+        ExtruderTrain &skin_extruder = Application::getInstance()
+                                           .current_slice->scene
+                                           .extruders[mesh.settings.get<ExtruderTrain &>("top_bottom_extruder_nr")
+                                                          .extruder_nr];
+        bool fiber_extruder = fiber_infill_extruder.settings.get<bool>("machine_fiber_extruder");
+
+        if (!fiber_extruder)
+        {
+            return false;
+        }
+        bool added_something = false;
+        Polygons infill_polygons;
+        Polygons infill_lines;
+        Polygons output_gaps;
+        AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+        if (mesh.infill_angles.size() > 0)
+        {
+            infill_angle = mesh.infill_angles.at(gcode_layer.getLayerNr() % mesh.infill_angles.size());
+        }
+        const EFillMethod pattern = EFillMethod::LINES;
+        const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("reinforcement_min_fiber_line_length");
+        const coord_t infill_line_width = mesh_config.fiber_infill_config.getLineWidth();
+
+        Infill infill_comp(pattern, false, false, part.fiber_infill_area, 0, infill_line_width, infill_line_width, 0, 1, infill_angle, gcode_layer.z, 0, 0, Point(), nullptr, false, false, false, 0, 0, 5, minimum_infill_line_length);
+        infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
+        //TODO: combine infill lines for fiber printing
+
+        if (output_gaps.size() > 0 && extruder_nr == skin_extruder.extruder_nr)
+        {
+            processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, output_gaps, mesh_config.skin_config, added_something);
+            return added_something;
+        }
+
+        if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+        {
+            Polygons printable_infill_lines;
+            Polygons printable_infill_polygons;
+            //Polygons possibly_printable_infill_polygons;
+            //Polygon polygon(infill_lines[0]);
+            //for (size_t i = 1; i < infill_lines.size(); i++)
+            //{
+            //    Point p0 = polygon.back();
+            //    Point p1 = infill_lines[i][0];
+            //    if (p0 == p1)
+            //    {
+            //        polygon.add(infill_lines[i][0]);
+            //        polygon.add(infill_lines[i][1]);
+            //    }
+            //    else
+            //    {
+            //        possibly_printable_infill_polygons.add(polygon);
+            //        polygon = Polygon(infill_lines[i]);
+            //    }
+            //}
+            //possibly_printable_infill_polygons.add(polygon);
+            //
+            //if (fiber_extruder)
+            //{
+            //    const double fiber_distance = fiber_infill_extruder.settings.get<double>(
+            //        "machine_fiber_cut_min_distance");
+            //
+            //    for (PolygonRef poly : infill_polygons)
+            //    {
+            //        if (gcode_layer.getLayerNr() >= (start_layer - 1) && gcode_layer.getLayerNr() < start_layer + layer_count - 1)
+            //        {
+            //            // polylines for fiber extruder
+            //            if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
+            //            {
+            //                printable_infill_polygons.add(poly);
+            //            }
+            //            // polylines for plastic extruder
+            //            if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
+            //            {
+            //                printable_infill_polygons.add(poly);
+            //            }
+            //        }
+            //        else if (!current_extruder_is_fiber)
+            //        {
+            //            printable_infill_polygons.add(poly);
+            //        }
+            //    }
+            //    for (PolygonRef poly : possibly_printable_infill_polygons)
+            //    {
+            //        if (gcode_layer.getLayerNr() >= (start_layer - 1) && gcode_layer.getLayerNr() < start_layer + layer_count - 1)
+            //        {
+            //            // polylines for fiber extruder
+            //            if (current_extruder_is_fiber && !poly.shorterThan(MM2INT(fiber_distance)))
+            //            {
+            //                if (poly.size() > 2)
+            //                {
+            //                    printable_infill_polygons.add(poly);
+            //                }
+            //                else
+            //                {
+            //                    printable_infill_lines.add(poly);
+            //                }
+            //            }
+            //            // polylines for plastic extruder
+            //            if (!current_extruder_is_fiber && poly.shorterThan(MM2INT(fiber_distance)))
+            //            {
+            //                if (poly.size() > 2)
+            //                {
+            //                    printable_infill_polygons.add(poly);
+            //                }
+            //                else
+            //                {
+            //                    printable_infill_lines.add(poly);
+            //                }
+            //            }
+            //        }
+            //        else if (!current_extruder_is_fiber)
+            //        {
+            //            if (poly.size() > 2)
+            //            {
+            //                printable_infill_polygons.add(poly);
+            //            }
+            //            else
+            //            {
+            //                printable_infill_lines.add(poly);
+            //            }
+            //        }
+            //    }
+            //}
+            //else
+            //{
+            printable_infill_lines = infill_lines;
+            printable_infill_polygons = infill_polygons;
+            //}
+
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            if (!printable_infill_polygons.empty())
+            {
+                constexpr bool force_comb_retract = false;
+                gcode_layer.addTravel(printable_infill_polygons[0][0], force_comb_retract);
+                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.fiber_infill_config, nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false);
+            }
+            const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+            if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            {
+                gcode_layer.addLinesByOptimizer(printable_infill_lines, mesh_config.fiber_infill_config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"));
+            }
+            else
+            {
+                gcode_layer.addLinesByOptimizer(printable_infill_lines, mesh_config.fiber_infill_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization);
+            }
+        }
+
+        return added_something;
+    }
+
+    void
+    FffGcodeWriter::processSpiralizedWall(const SliceDataStorage &storage, LayerPlan &gcode_layer, const PathConfigStorage::MeshPathConfigs &mesh_config, const SliceLayerPart &part) const
     {
         if (part.insets.size() == 0 || part.insets[0].size() == 0)
         {

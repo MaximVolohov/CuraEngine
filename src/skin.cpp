@@ -428,11 +428,18 @@ namespace cura
         infill = infill.difference(skin);
         infill.removeSmallAreas(MIN_AREA_SIZE);
 
-        //rotate to infill angle
-
-        part.infill_area = infill.offset(infill_skin_overlap);
+        const bool reinforcement_enabled = mesh.settings.get<bool>("reinforcement_enabled");
+        const size_t reinforcement_start_layer = mesh.settings.get<size_t>("reinforcement_start_layer");
+        const size_t reinforcement_layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
+        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count))
+        {
+            part.fiber_infill_area = infill.offset(infill_skin_overlap);
+        }
+        else
+        {
+            part.infill_area = infill.offset(infill_skin_overlap);
+        }
     }
-
     /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.

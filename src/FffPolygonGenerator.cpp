@@ -580,6 +580,7 @@ namespace cura
                         const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
                         Polygons inner = part.infill_area;
+                        inner.add(part.fiber_infill_area);
                         for (const SkinPart &skin_part : part.skin_parts)
                         {
                             inner.add(skin_part.outline);
