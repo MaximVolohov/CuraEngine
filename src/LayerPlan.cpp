@@ -1454,7 +1454,7 @@ namespace cura
                     const double path_fan_speed = path.getFanSpeed();
                     gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
-                    bool fiber_printing = extruder.settings.get<bool>("machine_fiber_extruder");
+                    bool fiber_printing = false; //extruder.settings.get<bool>("machine_fiber_extruder");
                     if (!fiber_printing)
                     {
                         bool coasting = extruder.settings.get<bool>("coasting_enable");

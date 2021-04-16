@@ -433,7 +433,16 @@ namespace cura
         const size_t reinforcement_layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
         if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count))
         {
-            part.fiber_infill_area = infill.offset(infill_skin_overlap);
+            Polygons offsetted_infill = infill.offset(infill_skin_overlap);
+            double area = offsetted_infill.area();
+            if (area >= (15400 * 15400))
+            {
+                part.fiber_infill_area = offsetted_infill;
+            }
+            else
+            {
+                part.infill_area = offsetted_infill;
+            }
         }
         else
         {

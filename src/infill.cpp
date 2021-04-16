@@ -88,9 +88,29 @@ namespace cura
             connector.add(result_polygons);
             result_polygons = connector.connect();
         }
+        if (pattern == EFillMethod::FIBER)
+        {
+            Polygons line_polygons;
+            for (size_t line_idx = 0; line_idx < result_lines.size(); line_idx++)
+            {
+                PolygonRef result_line = result_lines[line_idx];
+                Point line_vector = result_line[1] - result_line[0];
+                Point line_vector_reversed = -line_vector;
+                Polygon line_poly;
+                double ratio = vSizeMM(line_vector) / INT2MM(infill_line_width / 2);
+                line_poly.add(result_line[0] + Point(line_vector.Y, -line_vector.X) * (1 / ratio));
+                line_poly.add(result_line[1] + Point(line_vector_reversed.Y, -line_vector_reversed.X) * (1 / ratio));
+                line_poly.add(result_line[1] + Point(-line_vector_reversed.Y, line_vector_reversed.X) * (1 / ratio));
+                line_poly.add(result_line[0] + Point(-line_vector.Y, line_vector.X) * (1 / ratio));
+                line_polygons.add(line_poly);
+            }
+            line_polygons = line_polygons.offset(infill_line_width);
+            line_polygons = line_polygons.unionPolygons();
+            line_polygons = line_polygons.offset(-infill_line_width);
 
-        Polygons convex = result_lines.calcConvexHull();
-        result_gaps = in_outline.difference(convex);
+            //Polygons convex = result_lines.calcConvexHull();
+            result_gaps = in_outline.difference(line_polygons);
+        }
     }
 
     void Infill::_generate(Polygons &result_polygons, Polygons &result_lines, const SierpinskiFillProvider *cross_fill_provider, const SliceMeshStorage *mesh)
@@ -154,6 +174,9 @@ namespace cura
         case EFillMethod::GYROID:
             generateGyroidInfill(result_lines);
             break;
+        case EFillMethod::FIBER:
+            generateFiberInfill(result_lines, line_distance, fill_angle);
+            break;
         default:
             logError("Fill pattern has unknown value.\n");
             break;
@@ -167,6 +190,12 @@ namespace cura
             //The list should be empty because it will be again filled completely. Otherwise might have double lines.
             result_lines.clear();
 
+            connectLines(result_lines);
+        }
+        if (zig_zaggify && pattern == EFillMethod::FIBER)
+        {
+            //Connect infill
+            result_lines.clear();
             connectLines(result_lines);
         }
         crossings_on_line.clear();
@@ -434,7 +463,7 @@ namespace cura
                     continue;
                 }
                 //We have to create our own lines when they are not created by the method connectLines.
-                if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES)
+                if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES || pattern == EFillMethod::FIBER)
                 {
                     Point start = Point(x, crossings[crossing_idx]);
                     Point end = Point(x, crossings[crossing_idx + 1]);
@@ -475,6 +504,15 @@ namespace cura
         PointMatrix rotation_matrix(infill_rotation);
         ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
         generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
+    }
+
+    void Infill::generateFiberInfill(Polygons &result, const coord_t line_distance, const double &infill_rotation)
+    {
+        const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
+
+        PointMatrix rotation_matrix(infill_rotation);
+        NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
+        generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
     }
 
     /*
@@ -642,6 +680,10 @@ namespace cura
                 {
                     continue;
                 }
+                if (vSize(unrotated_first - unrotated_second) < minimum_infill_line_length)
+                {
+                    continue;
+                }
                 InfillLineSegment *new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
                 //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
                 crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
@@ -664,7 +706,7 @@ namespace cura
     void Infill::connectLines(Polygons &result_lines)
     {
         //TODO: We're reconstructing the outline here. We should store it and compute it only once.
-        Polygons outline = in_outline.offset(outline_offset + infill_overlap);
+        Polygons outline = in_outline.offset(outline_offset - infill_line_width / 2 + infill_overlap);
 
         UnionFind<InfillLineSegment *> connected_lines; //Keeps track of which lines are connected to which.
         for (std::vector<std::vector<InfillLineSegment *>> &crossings_on_polygon : crossings_on_line)
@@ -789,7 +831,7 @@ namespace cura
                             previous_segment = nullptr;
                             previous_crossing = nullptr;
                         }
-                        else
+                        else if (vSize(previous_segment->end - vertex_after) >= minimum_infill_line_length)
                         {
                             new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
                             previous_segment->previous = new_segment;
@@ -805,7 +847,7 @@ namespace cura
                             previous_segment = nullptr;
                             previous_crossing = nullptr;
                         }
-                        else
+                        else if (vSize(previous_segment->end - vertex_after) >= minimum_infill_line_length)
                         {
                             new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
                             previous_segment->next = new_segment;
