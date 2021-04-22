@@ -518,7 +518,7 @@ namespace cura
         }
     }
 
-    void LayerPlan::addPolygonsByOptimizer(const Polygons &polygons, const GCodePathConfig &config, WallOverlapComputation *wall_overlap_computation, const ZSeamConfig &z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, bool close)
+    void LayerPlan::addPolygonsByOptimizer(const Polygons &polygons, const GCodePathConfig &config, WallOverlapComputation *wall_overlap_computation, const ZSeamConfig &z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, bool close, bool start_with_zero)
     {
         if (polygons.size() == 0)
         {
@@ -535,7 +535,7 @@ namespace cura
         {
             for (unsigned int poly_idx : orderOptimizer.polyOrder)
             {
-                addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, close);
+                addPolygon(polygons[poly_idx], start_with_zero ? 0 : orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, close);
             }
         }
         else
@@ -1454,7 +1454,7 @@ namespace cura
                     const double path_fan_speed = path.getFanSpeed();
                     gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
 
-                    bool fiber_printing = false; //extruder.settings.get<bool>("machine_fiber_extruder");
+                    bool fiber_printing = extruder.settings.get<bool>("machine_fiber_extruder");
                     if (!fiber_printing)
                     {
                         bool coasting = extruder.settings.get<bool>("coasting_enable");

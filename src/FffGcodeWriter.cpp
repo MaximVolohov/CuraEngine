@@ -1499,24 +1499,24 @@ namespace cura
             Polygons printable_infill_lines;
             Polygons printable_infill_polygons;
             Polygons possibly_printable_infill_polygons;
-            //Polygon polygon(infill_lines[0]);
-            //for (size_t i = 1; i < infill_lines.size(); i++)
-            //{
-            //    Point p0 = polygon.back();
-            //    Point p1 = infill_lines[i][0];
-            //    if (p0 == p1)
-            //    {
-            //        polygon.add(infill_lines[i][0]);
-            //        polygon.add(infill_lines[i][1]);
-            //    }
-            //    else
-            //    {
-            //        possibly_printable_infill_polygons.add(polygon);
-            //        polygon = Polygon(infill_lines[i]);
-            //    }
-            //}
-            //possibly_printable_infill_polygons.add(polygon);
-            //
+            Polygon polygon(infill_lines[0]);
+            for (size_t i = 1; i < infill_lines.size(); i++)
+            {
+                Point p0 = polygon.back();
+                Point p1 = infill_lines[i][0];
+                if (p0 == p1)
+                {
+                    //polygon.add(infill_lines[i][0]);
+                    polygon.add(infill_lines[i][1]);
+                }
+                else
+                {
+                    printable_infill_polygons.add(polygon);
+                    polygon = Polygon(infill_lines[i]);
+                }
+            }
+            printable_infill_polygons.add(polygon);
+
             //if (fiber_extruder)
             //{
             //    const double fiber_distance = fiber_infill_extruder.settings.get<double>(
@@ -1550,8 +1550,8 @@ namespace cura
             //}
             //else
             //{
-            printable_infill_lines = infill_lines;
-            printable_infill_polygons = infill_polygons;
+            //printable_infill_lines = infill_lines;
+            //printable_infill_polygons = infill_polygons;
             //}
 
             added_something = true;
@@ -1561,7 +1561,7 @@ namespace cura
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(printable_infill_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.fiber_infill_config, nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false, false);
+                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.fiber_infill_config, nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false, false, true);
             }
             const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)

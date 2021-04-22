@@ -523,7 +523,7 @@ namespace cura
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      * \param reverse_order Adds polygons in reverse order
      */
-      void addPolygonsByOptimizer(const Polygons &polygons, const GCodePathConfig &config, WallOverlapComputation *wall_overlap_computation = nullptr, const ZSeamConfig &z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio flow_ratio = 1.0_r, bool always_retract = false, bool reverse_order = false, bool close = true);
+      void addPolygonsByOptimizer(const Polygons &polygons, const GCodePathConfig &config, WallOverlapComputation *wall_overlap_computation = nullptr, const ZSeamConfig &z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio flow_ratio = 1.0_r, bool always_retract = false, bool reverse_order = false, bool close = true, bool start_with_zero = false);
 
       /*!
      * Add a single line that is part of a wall to the gcode.

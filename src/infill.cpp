@@ -107,8 +107,6 @@ namespace cura
             line_polygons = line_polygons.offset(infill_line_width);
             line_polygons = line_polygons.unionPolygons();
             line_polygons = line_polygons.offset(-infill_line_width);
-
-            //Polygons convex = result_lines.calcConvexHull();
             result_gaps = in_outline.difference(line_polygons);
         }
     }
