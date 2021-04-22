@@ -33,6 +33,19 @@ namespace cura
         NONE
     };
 
+    enum class EWallsToReinforce
+    {
+        ALL,
+        INNER,
+        OUTER
+    };
+
+    enum class EReinforcementType
+    {
+        CONCENTRIC,
+        ISOTROPIC
+    };
+
     /*!
  * Type of platform adhesion.
  */

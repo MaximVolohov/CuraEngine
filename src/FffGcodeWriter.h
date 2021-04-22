@@ -422,6 +422,7 @@ namespace cura
      * \return Whether this function added anything to the layer plan
      */
       bool processInsets(const SliceDataStorage &storage, LayerPlan &gcodeLayer, const SliceMeshStorage &mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs &mesh_config, const SliceLayerPart &part) const;
+      bool processFiberInsets(const SliceDataStorage &storage, LayerPlan &gcodeLayer, const SliceMeshStorage &mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs &mesh_config, const SliceLayerPart &part) const;
 
       /*!
      * Generate the a spiralized wall for a given layer part.

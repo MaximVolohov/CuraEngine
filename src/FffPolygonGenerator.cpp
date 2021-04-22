@@ -26,6 +26,7 @@
 #include "TopSurface.h"
 #include "TreeSupport.h"
 #include "WallsComputation.h"
+#include "FiberWallsComputation.h"
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SpaghettiInfill.h"
@@ -403,6 +404,7 @@ namespace cura
         {
             logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
             processInsets(mesh, layer_number);
+            processFiberInsets(mesh, layer_number);
 #ifdef _OPENMP
             if (omp_get_thread_num() == 0)
 #endif
@@ -577,7 +579,25 @@ namespace cura
                     // gap between inner wall and skin/infill
                     if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
                     {
-                        const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+                        Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+                        if (part.fiber_insets.size() > 0)
+                        {
+                            coord_t fiber_line_width = mesh.settings.get<coord_t>("fiber_infill_line_width");
+                            outer = part.fiber_insets.back().offset(-1 * fiber_line_width / 2 - perimeter_gaps_extra_offset);
+                            EWallsToReinforce walls_to_reinforce = mesh.settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
+                            if (walls_to_reinforce != EWallsToReinforce::ALL)
+                            {
+                                Polygons insets = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+                                for (size_t i = 0; i < insets.size(); i++)
+                                {
+                                    bool outer_inset = insets[i].orientation();
+                                    if ((walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset) || (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset))
+                                    {
+                                        outer.add(insets[i]);
+                                    }
+                                }
+                            }
+                        }
 
                         Polygons inner = part.infill_area;
                         inner.add(part.fiber_infill_area);
@@ -762,6 +782,13 @@ namespace cura
                 part.print_outline = part.outline;
             }
         }
+    }
+
+    void FffPolygonGenerator::processFiberInsets(SliceMeshStorage &mesh, size_t layer_nr)
+    {
+        SliceLayer *layer = &mesh.layers[layer_nr];
+        FiberWallsComputation walls_computation(mesh.settings, layer_nr);
+        walls_computation.generateInsets(layer);
     }
 
     bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage &storage, const unsigned int layer_idx)

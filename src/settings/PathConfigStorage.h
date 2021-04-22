@@ -49,6 +49,7 @@ namespace cura
             GCodePathConfig roofing_config;
             std::vector<GCodePathConfig> infill_config;
             GCodePathConfig fiber_infill_config;
+            GCodePathConfig fiber_inset_config;
             GCodePathConfig ironing_config;
             GCodePathConfig perimeter_gap_config;
 

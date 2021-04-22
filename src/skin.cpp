@@ -61,7 +61,19 @@ namespace cura
     }
 
     SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex &layer_nr, SliceMeshStorage &mesh, bool process_infill)
-        : layer_nr(layer_nr), mesh(mesh), bottom_layer_count(mesh.settings.get<size_t>("bottom_layers")), top_layer_count(mesh.settings.get<size_t>("top_layers")), wall_line_count(mesh.settings.get<size_t>("wall_line_count")), skin_line_width(getSkinLineWidth(mesh, layer_nr)), wall_line_width_0(getWallLineWidth0(mesh, layer_nr)), wall_line_width_x(getWallLineWidthX(mesh, layer_nr)), innermost_wall_line_width((wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x), infill_skin_overlap(getInfillSkinOverlap(mesh, layer_nr, innermost_wall_line_width)), skin_inset_count(mesh.settings.get<size_t>("skin_outline_count")), no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic")), process_infill(process_infill), top_reference_wall_expansion(mesh.settings.get<coord_t>("top_skin_preshrink")), bottom_reference_wall_expansion(mesh.settings.get<coord_t>("bottom_skin_preshrink")), top_skin_expand_distance(mesh.settings.get<coord_t>("top_skin_expand_distance")), bottom_skin_expand_distance(mesh.settings.get<coord_t>("bottom_skin_expand_distance")), top_reference_wall_idx(getReferenceWallIdx(top_reference_wall_expansion)), bottom_reference_wall_idx(getReferenceWallIdx(bottom_reference_wall_expansion))
+        : layer_nr(layer_nr),
+          mesh(mesh),
+          bottom_layer_count(mesh.settings.get<size_t>("bottom_layers")),
+          top_layer_count(mesh.settings.get<size_t>("top_layers")),
+          wall_line_count(mesh.settings.get<size_t>("wall_line_count")),
+          fiber_wall_line_count(mesh.settings.get<size_t>("reinforcement_concentric_fiber_rings")),
+          skin_line_width(getSkinLineWidth(mesh, layer_nr)),
+          wall_line_width_0(getWallLineWidth0(mesh, layer_nr)),
+          wall_line_width_x(getWallLineWidthX(mesh, layer_nr)),
+          fiber_wall_line_width(mesh.settings.get<coord_t>("fiber_infill_line_width")),
+          innermost_wall_line_width((wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x),
+          infill_skin_overlap(getInfillSkinOverlap(mesh, layer_nr, innermost_wall_line_width)),
+          skin_inset_count(mesh.settings.get<size_t>("skin_outline_count")), no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic")), process_infill(process_infill), top_reference_wall_expansion(mesh.settings.get<coord_t>("top_skin_preshrink")), bottom_reference_wall_expansion(mesh.settings.get<coord_t>("bottom_skin_preshrink")), top_skin_expand_distance(mesh.settings.get<coord_t>("top_skin_expand_distance")), bottom_skin_expand_distance(mesh.settings.get<coord_t>("bottom_skin_expand_distance")), top_reference_wall_idx(getReferenceWallIdx(top_reference_wall_expansion)), bottom_reference_wall_idx(getReferenceWallIdx(bottom_reference_wall_expansion))
     {
     }
 
@@ -177,8 +189,28 @@ namespace cura
  */
     void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart &part, bool use_skin)
     {
-
-        Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
+        Polygons original_outline;
+        if (part.fiber_insets.size() > 0)
+        {
+            original_outline = part.fiber_insets.back().offset(-fiber_wall_line_width / 2);
+            EWallsToReinforce walls_to_reinforce = mesh.settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
+            if (walls_to_reinforce != EWallsToReinforce::ALL)
+            {
+                Polygons insets = part.insets.back().offset(-innermost_wall_line_width / 2);
+                for (size_t i = 0; i < insets.size(); i++)
+                {
+                    bool outer_inset = insets[i].orientation();
+                    if ((walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset) || (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset))
+                    {
+                        original_outline.add(insets[i]);
+                    }
+                }
+            }
+        }
+        else
+        {
+            original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
+        }
 
         // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
         Polygons upskin;
@@ -423,7 +455,30 @@ namespace cura
             }
             offset_from_inner_wall += extra_perimeter_offset - innermost_wall_line_width / 2;
         }
-        Polygons infill = part.insets.back().offset(offset_from_inner_wall);
+        Polygons infill;
+        if (part.fiber_insets.size() > 0)
+        {
+            infill = part.fiber_insets.back().offset(-fiber_wall_line_width / 2);
+            EWallsToReinforce walls_to_reinforce = mesh.settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
+            if (walls_to_reinforce != EWallsToReinforce::ALL)
+            {
+                Polygons insets = part.insets.back().offset(offset_from_inner_wall);
+                for (size_t i = 0; i < insets.size(); i++)
+                {
+                    bool outer_inset = insets[i].orientation();
+                    if ((walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset) || (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset))
+                    {
+                        infill.add(insets[i]);
+                    }
+                }
+            }
+        }
+        else
+        {
+            infill = part.insets.back().offset(offset_from_inner_wall);
+        }
+
+        //Polygons infill = part.insets.back().offset(offset_from_inner_wall);
 
         infill = infill.difference(skin);
         infill.removeSmallAreas(MIN_AREA_SIZE);
@@ -431,7 +486,8 @@ namespace cura
         const bool reinforcement_enabled = mesh.settings.get<bool>("reinforcement_enabled");
         const size_t reinforcement_start_layer = mesh.settings.get<size_t>("reinforcement_start_layer");
         const size_t reinforcement_layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
-        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count))
+        const EReinforcementType reinforcement_type = mesh.settings.get<EReinforcementType>("reinforcement_type");
+        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count) && reinforcement_type == EReinforcementType::ISOTROPIC)
         {
             Polygons offsetted_infill = infill.offset(infill_skin_overlap);
             double area = offsetted_infill.area();

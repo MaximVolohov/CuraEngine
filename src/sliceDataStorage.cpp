@@ -285,6 +285,10 @@ namespace cura
         {
             for (const SliceLayerPart &part : layer.parts)
             {
+                if (part.fiber_insets.size() > 0)
+                {
+                    return true;
+                }
                 if (part.fiber_infill_area.size() > 0)
                 {
                     return true;

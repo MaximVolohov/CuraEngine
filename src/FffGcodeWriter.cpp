@@ -1222,6 +1222,7 @@ namespace cura
         added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
         //TODO: process fiber infill here
+        added_something = added_something | processFiberInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
         added_something = added_something | processFiberInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
@@ -1823,6 +1824,41 @@ namespace cura
                             gcode_layer.addWalls(inner_wall, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
                         }
                     }
+                }
+            }
+        }
+        return added_something;
+    }
+
+    bool FffGcodeWriter::processFiberInsets(const SliceDataStorage &storage, LayerPlan &gcode_layer, const SliceMeshStorage &mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs &mesh_config, const SliceLayerPart &part) const
+    {
+        if (extruder_nr != mesh.settings.get<ExtruderTrain &>("fiber_infill_extruder_nr").extruder_nr)
+        {
+            return false;
+        }
+        bool added_something = false;
+        if (mesh.settings.get<size_t>("reinforcement_concentric_fiber_rings") > 0)
+        {
+            const bool outer_inset_first = false; //mesh.settings.get<bool>("outer_inset_first") || (gcode_layer.getLayerNr() == 0 && mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM);
+            int processed_inset_number = -1;
+            for (int inset_number = part.fiber_insets.size() - 1; inset_number > -1; inset_number--)
+            {
+                processed_inset_number = inset_number;
+                if (outer_inset_first)
+                {
+                    processed_inset_number = part.fiber_insets.size() - 1 - inset_number;
+                }
+                // Inner walls are processed
+                if (!part.fiber_insets[processed_inset_number].empty())
+                {
+                    added_something = true;
+                    setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                    gcode_layer.setIsInside(true); // going to print stuff inside print object
+                    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+                    Polygons inner_wall = part.fiber_insets[processed_inset_number];
+
+                    WallOverlapComputation *wall_overlap_computation(nullptr);
+                    gcode_layer.addWalls(part.fiber_insets[processed_inset_number], mesh, mesh_config.fiber_inset_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
                 }
             }
         }

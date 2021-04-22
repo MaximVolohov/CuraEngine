@@ -130,6 +130,7 @@ set(engine_SRCS # Except main.cpp.
     src/TopSurface.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
+    src/FiberWallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
