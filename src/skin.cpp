@@ -196,11 +196,22 @@ namespace cura
             EWallsToReinforce walls_to_reinforce = mesh.settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
             if (walls_to_reinforce != EWallsToReinforce::ALL)
             {
+                for (size_t i = 0; i < original_outline.size(); i++)
+                {
+                    if (walls_to_reinforce == EWallsToReinforce::INNER && original_outline[i].orientation())
+                    {
+                        original_outline[i].reverse();
+                    }
+                }
                 Polygons insets = part.insets.back().offset(-innermost_wall_line_width / 2);
                 for (size_t i = 0; i < insets.size(); i++)
                 {
                     bool outer_inset = insets[i].orientation();
-                    if ((walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset) || (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset))
+                    if (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset)
+                    {
+                        original_outline.insert(insets[i], 0);
+                    }
+                    else if (walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset)
                     {
                         original_outline.add(insets[i]);
                     }
@@ -462,11 +473,22 @@ namespace cura
             EWallsToReinforce walls_to_reinforce = mesh.settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
             if (walls_to_reinforce != EWallsToReinforce::ALL)
             {
+                for (size_t i = 0; i < infill.size(); i++)
+                {
+                    if (walls_to_reinforce == EWallsToReinforce::INNER && infill[i].orientation())
+                    {
+                        infill[i].reverse();
+                    }
+                }
                 Polygons insets = part.insets.back().offset(offset_from_inner_wall);
                 for (size_t i = 0; i < insets.size(); i++)
                 {
                     bool outer_inset = insets[i].orientation();
-                    if ((walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset) || (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset))
+                    if (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset)
+                    {
+                        infill.insert(insets[i], 0);
+                    }
+                    else if (walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset)
                     {
                         infill.add(insets[i]);
                     }

@@ -1837,29 +1837,67 @@ namespace cura
             return false;
         }
         bool added_something = false;
+        coord_t fiber_line_width = mesh.settings.get<coord_t>("fiber_infill_line_width");
         if (mesh.settings.get<size_t>("reinforcement_concentric_fiber_rings") > 0)
         {
-            const bool outer_inset_first = false; //mesh.settings.get<bool>("outer_inset_first") || (gcode_layer.getLayerNr() == 0 && mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM);
-            int processed_inset_number = -1;
-            for (int inset_number = part.fiber_insets.size() - 1; inset_number > -1; inset_number--)
+            size_t max_inset_count = 0;
+            for (size_t inset_number = 0; inset_number < part.fiber_insets.size(); inset_number++)
             {
-                processed_inset_number = inset_number;
-                if (outer_inset_first)
+                if (part.fiber_insets[inset_number].size() > max_inset_count)
                 {
-                    processed_inset_number = part.fiber_insets.size() - 1 - inset_number;
+                    max_inset_count = part.fiber_insets[inset_number].size();
                 }
-                // Inner walls are processed
-                if (!part.fiber_insets[processed_inset_number].empty())
+            }
+            for (size_t inset_per_wall = 0; inset_per_wall < max_inset_count; inset_per_wall++)
+            {
+                added_something = true;
+                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                WallOverlapComputation *wall_overlap_computation(nullptr);
+                Polygon connected_wall;
+                for (int inset_number = part.fiber_insets.size() - 1; inset_number >= 0; inset_number--)
                 {
-                    added_something = true;
-                    setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                    gcode_layer.setIsInside(true); // going to print stuff inside print object
-                    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-                    Polygons inner_wall = part.fiber_insets[processed_inset_number];
-
-                    WallOverlapComputation *wall_overlap_computation(nullptr);
-                    gcode_layer.addWalls(part.fiber_insets[processed_inset_number], mesh, mesh_config.fiber_inset_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
+                    if (part.fiber_insets[inset_number].size() <= inset_per_wall)
+                    {
+                        continue;
+                    }
+                    //TODO: start with closest point
+                    int start_idx = 0;
+                    if (!connected_wall.empty())
+                    {
+                        coord_t min_dist_2 = vSize2(connected_wall[0] - part.fiber_insets[inset_number][inset_per_wall][0]);
+                        for (size_t point_idx = 1; point_idx < part.fiber_insets[inset_number][inset_per_wall].size(); point_idx++)
+                        {
+                            if (vSize2(connected_wall[0] - part.fiber_insets[inset_number][inset_per_wall][point_idx]) < min_dist_2)
+                            {
+                                min_dist_2 = vSize2(connected_wall[0] - part.fiber_insets[inset_number][inset_per_wall][point_idx]);
+                                start_idx = point_idx;
+                            }
+                        }
+                    }
+                    for (size_t point_idx = 0; point_idx < part.fiber_insets[inset_number][inset_per_wall].size(); point_idx++)
+                    {
+                        connected_wall.add(part.fiber_insets[inset_number][inset_per_wall][(start_idx + point_idx) % part.fiber_insets[inset_number][inset_per_wall].size()]);
+                    }
+                    Point p0 = connected_wall.back();
+                    Point p1 = part.fiber_insets[inset_number][inset_per_wall][start_idx];
+                    for (int last_point_idx = connected_wall.size() - 1; last_point_idx >= 0; last_point_idx--)
+                    {
+                        if (vSize2(p1 - p0) < (fiber_line_width * fiber_line_width * 4))
+                        {
+                            connected_wall.pop_back();
+                            p0 = connected_wall.back();
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    double ratio = (vSizeMM(p1 - p0) - INT2MM(fiber_line_width * 2)) / (vSizeMM(p1 - p0));
+                    Point px = (p1 - p0) * ratio + p0;
+                    connected_wall.add(px);
                 }
+                gcode_layer.addPolygon(connected_wall, 0, mesh_config.fiber_inset_config, wall_overlap_computation, 0, false, 1.0, false, false);
             }
         }
         return added_something;

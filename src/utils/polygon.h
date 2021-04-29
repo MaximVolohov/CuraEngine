@@ -689,6 +689,14 @@ namespace cura
         {
             std::copy(other.paths.begin(), other.paths.end(), std::back_inserter(paths));
         }
+        void insert(ConstPolygonRef &poly, size_t index)
+        {
+            paths.insert(paths.begin() + index, *poly.path);
+        }
+        void insert(const ConstPolygonRef &poly, size_t index)
+        {
+            paths.insert(paths.begin() + index, *poly.path);
+        }
         /*!
      * Add a 'polygon' consisting of two points
      */

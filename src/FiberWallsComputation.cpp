@@ -3,6 +3,7 @@
 
 #include "FiberWallsComputation.h"
 #include "utils/polygonUtils.h"
+#include "utils/linearAlg2D.h"
 namespace cura
 {
 
@@ -45,7 +46,7 @@ namespace cura
             }
             else
             {
-                offsetted = part->fiber_insets[i - 1].offset(-line_width, ClipperLib::jtSquare);
+                offsetted = part->insets.back().offset(-inset_offset - line_width / 2 - line_width * i, ClipperLib::jtSquare);
             }
             if (walls_to_reinforce == EWallsToReinforce::ALL)
             {
@@ -112,6 +113,55 @@ namespace cura
             {
                 part->fiber_insets.pop_back();
                 break;
+            }
+            if (true) //(i == 0)
+            {
+                coord_t min_fiber_line_length = settings.get<coord_t>("reinforcement_min_fiber_line_length");
+                for (size_t inset_idx = 0; inset_idx < part->fiber_insets[i].size(); inset_idx++)
+                {
+                    PolygonRef poly = part->fiber_insets[i][inset_idx];
+                    bool obtuse_angle = LinearAlg2D::isAcuteCorner(poly.back(), poly[0], poly[1]) < 0;
+                    if (!obtuse_angle)
+                    {
+                        //try to find obtuse angle
+                        int start_idx = 0;
+                        for (size_t point_idx = 1; point_idx < poly.size(); ++point_idx)
+                        {
+                            if (LinearAlg2D::isAcuteCorner(poly[(point_idx + 1) % poly.size()], poly[point_idx], poly[point_idx - 1]) < 0)
+                            {
+                                start_idx = point_idx;
+                                break;
+                            }
+                        }
+                        //we found obtuse start
+                        if (start_idx > 0)
+                        {
+                            part->fiber_insets[i][inset_idx][0] = poly[start_idx];
+                            for (unsigned int point_idx = 1; point_idx < poly.size(); point_idx++)
+                            {
+                                part->fiber_insets[i][inset_idx][point_idx] = poly[(point_idx + start_idx) % poly.size()];
+                            }
+                        }
+                        else
+                        {
+                            //obtuse start not found
+                            Point p0 = poly[0];
+                            for (size_t point_idx = 1; point_idx < poly.size(); point_idx++)
+                            {
+                                Point p1 = poly[point_idx];
+                                if (vSize2(p1 - p0) > (min_fiber_line_length * min_fiber_line_length))
+                                {
+                                    double min_dist = std::max(vSizeMM(p1 - p0) / 2.0, INT2MM(min_fiber_line_length));
+                                    double ratio = min_dist / (vSizeMM(p1 - p0));
+                                    Point px = (p1 - p0) * ratio + p0;
+                                    poly.add(poly[0]);
+                                    poly[0] = px;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
