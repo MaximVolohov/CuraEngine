@@ -802,7 +802,7 @@ namespace cura
                                                 .settings;
         if (extruder_settings.get<bool>("machine_fiber_extruder"))
         {
-            extrusion_per_mm = 1.0;
+            extrusion_per_mm = extruder_settings.get<Ratio>("fiber_infill_material_flow");
         }
 
         double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
