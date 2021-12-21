@@ -437,6 +437,12 @@ namespace cura
         ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
 
         const Settings &mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+        if (mesh_group_settings.get<bool>("cylindrical_raft_enabled"))
+        {
+            ret[mesh_group_settings.get<ExtruderTrain &>("cylindrical_raft_extruder_nr").extruder_nr] = true;
+        }
+
         if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
         {
             ret[mesh_group_settings.get<ExtruderTrain &>("adhesion_extruder_nr").extruder_nr] = true;
