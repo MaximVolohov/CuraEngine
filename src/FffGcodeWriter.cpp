@@ -103,15 +103,17 @@ namespace cura
         }
 
         const std::function<LayerPlan *(int)> &produce_item =
-            [&storage, total_layers, this](int layer_nr) {
-                LayerPlan &gcode_layer = processLayer(storage, layer_nr, total_layers);
-                return &gcode_layer;
-            };
+            [&storage, total_layers, this](int layer_nr)
+        {
+            LayerPlan &gcode_layer = processLayer(storage, layer_nr, total_layers);
+            return &gcode_layer;
+        };
         const std::function<void(LayerPlan *)> &consume_item =
-            [this, total_layers](LayerPlan *gcode_layer) {
-                Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
-                layer_plan_buffer.handle(*gcode_layer, gcode);
-            };
+            [this, total_layers](LayerPlan *gcode_layer)
+        {
+            Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
+            layer_plan_buffer.handle(*gcode_layer, gcode);
+        };
         const unsigned int max_task_count = OMP_MAX_ACTIVE_LAYERS_PROCESSED;
         GcodeLayerThreader<LayerPlan> threader(
             process_layer_starting_layer_nr, static_cast<int>(total_layers), produce_item, consume_item, max_task_count);
@@ -296,7 +298,12 @@ namespace cura
     unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage &storage)
     {
         const Settings &mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        size_t start_extruder_nr = mesh_group_settings.get<ExtruderTrain &>("adhesion_extruder_nr").extruder_nr;
+        size_t start_extruder_nr = mesh_group_settings.get<ExtruderTrain &>("cylindrical_raft_extruder_nr").extruder_nr;
+        if (mesh_group_settings.get<bool>("cylindrical_raft_enabled"))
+        {
+            return start_extruder_nr;
+        }
+        start_extruder_nr = mesh_group_settings.get<ExtruderTrain &>("adhesion_extruder_nr").extruder_nr;
         if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::NONE)
         {
             std::vector<bool> extruder_is_used = storage.getExtrudersUsed();

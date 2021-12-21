@@ -11,7 +11,7 @@
             "program": "${command:cmake.launchTargetPath}",
             "args": [
                 "connect",
-                "127.0.0.1:49774",
+                "127.0.0.1:49674",
                 "-vvv"
             ],
             "stopAtEntry": true,
