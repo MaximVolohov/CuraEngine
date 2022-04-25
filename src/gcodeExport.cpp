@@ -554,6 +554,7 @@ namespace cura
             if (*fiber_cut_code)
             {
                 writeCode(fiber_cut_code);
+                *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
             }
             current_e_value = 0;
         }
@@ -571,6 +572,7 @@ namespace cura
             if (*fiber_prime_code)
             {
                 writeCode(fiber_prime_code);
+                *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
             }
             current_e_value = 0;
         }
