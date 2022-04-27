@@ -1777,34 +1777,25 @@ namespace cura
 
         { // fiber extrusion
             Communication *communication = Application::getInstance().communication;
-            for (size_t point_idx = 0; point_idx <= point_idx_before_start;
-                 point_idx++)
+            for (size_t point_idx = 0; point_idx <= point_idx_before_start;point_idx++)
             {
-                communication->sendLineTo(
-                    path.config->type, path.points[point_idx],
-                    path.getLineWidthForLayerView(),
-                    path.config->getLayerThickness(), extrude_speed);
-                gcode.writeExtrusion(path.points[point_idx], extrude_speed,
-                                     path.getExtrusionMM3perMM(),
-                                     path.config->type);
+                communication->sendLineTo(path.config->type, path.points[point_idx],path.getLineWidthForLayerView(),path.config->getLayerThickness(), extrude_speed);
+                gcode.writeExtrusion(path.points[point_idx], extrude_speed,path.getExtrusionMM3perMM(),path.config->type);
             }
-            communication->sendLineTo(
-                path.config->type, start, path.getLineWidthForLayerView(),
-                path.config->getLayerThickness(), extrude_speed);
-            gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(),
-                                 path.config->type);
+            communication->sendLineTo(path.config->type, start, path.getLineWidthForLayerView(),path.config->getLayerThickness(), extrude_speed);
+            gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(),path.config->type);
         }
 
         // cut fiber here
         gcode.writeFiberCut();
 
         { // pull out rest fiber
-            for (size_t point_idx = point_idx_before_start + 1;
-                 point_idx < path.points.size(); point_idx++)
+            for (size_t point_idx = point_idx_before_start + 1;point_idx < path.points.size(); point_idx++)
             {
-                gcode.writeDryExtrusion(
-                    path.points[point_idx],
-                    path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
+                const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed")-0.4;
+                const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
+            
+                gcode.writeDryExtrusion(path.points[point_idx],speed);
             }
         }
 
