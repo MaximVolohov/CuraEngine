@@ -76,7 +76,7 @@ namespace cura
         }
         else
         {
-            new_line = "\n";
+            new_line = " \n";
         }
 
         // initialize current_max_z_feedrate to firmware defaults
@@ -625,17 +625,13 @@ namespace cura
 #endif                                    // ASSERT_INSANE_OUTPUT
 
         const PrintFeatureType travel_move_type = PrintFeatureType::SupportInterface;
-        const int display_width = extruder_attr[current_extruder].retraction_e_amount_current
-                                      ? MM2INT(0.2)
-                                      : MM2INT(0.1);
-        const double layer_height = Application::getInstance()
-                                        .current_slice->scene.current_mesh_group->settings.get<double>(
-                                            "layer_height");
-        Application::getInstance().communication->sendLineTo(
-            travel_move_type, Point(x, y), display_width, layer_height,
-            speed);
+        const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
+        const double layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height");
+        Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height,speed);
+
         *output_stream << "G1"; // dry extrusion is still extrusion move
-        writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
+        writeFXYZE(speed, x, y, z, current_e_value , travel_move_type);
+
     }
 
     void GCodeExport::writeExtrusion(const Point3 &p, const Velocity &speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
@@ -822,7 +818,7 @@ namespace cura
         Point gcode_pos = getGcodePos(x, y, current_extruder);
         total_bounding_box.include(Point3(gcode_pos.X, gcode_pos.Y, z));
 
-        *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
+        *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y}; 
         if (z != currentPosition.z)
         {
             *output_stream << " Z" << MMtoStream{z};

@@ -1792,9 +1792,7 @@ namespace cura
         { // pull out rest fiber
             for (size_t point_idx = point_idx_before_start + 1;point_idx < path.points.size(); point_idx++)
             {
-                const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed")-0.4;
-                const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
-            
+                const Velocity speed = Velocity(path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
                 gcode.writeDryExtrusion(path.points[point_idx],speed);
             }
         }
