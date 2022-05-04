@@ -1484,15 +1484,16 @@ namespace cura
         Polygons infill_lines;
         Polygons output_gaps;
         AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
-        if (mesh.infill_angles.size() > 0)
+        if (mesh.fiber_infill_angles.size() > 0)
         {
-            infill_angle = mesh.infill_angles.at(gcode_layer.getLayerNr() % mesh.infill_angles.size());
+            infill_angle = mesh.fiber_infill_angles.at(gcode_layer.getLayerNr() % mesh.fiber_infill_angles.size());
         }
         const EFillMethod pattern = EFillMethod::FIBER;
         const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("reinforcement_min_fiber_line_length");
-        const coord_t infill_line_width = mesh_config.fiber_infill_config.getLineWidth();
+        const coord_t fiber_infill_line_width = mesh_config.fiber_infill_config.getLineWidth();
+        const coord_t fiber_line_distance = mesh.settings.get<coord_t>("fiber_line_distance");
 
-        Infill infill_comp(pattern, true, false, part.fiber_infill_area, 0, infill_line_width, infill_line_width, 0, 1, infill_angle, gcode_layer.z, 0, 0, Point(), nullptr, false, false, false, 0, 0, 5, minimum_infill_line_length);
+        Infill infill_comp(pattern, true, false, part.fiber_infill_area, 0, fiber_infill_line_width, fiber_line_distance, 0, 1, infill_angle, gcode_layer.z, 0, 0, Point(), nullptr, false, false, false, 0, 0, 5, minimum_infill_line_length);
         infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
         //TODO: combine infill lines for fiber printing
 
