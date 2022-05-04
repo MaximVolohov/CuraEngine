@@ -553,9 +553,9 @@ namespace cura
             const char *fiber_cut_code = code.c_str();
             if (*fiber_cut_code)
             {
-                writeCode(fiber_cut_code);
+                writeCode(fiber_cut_code);   
             }
-            current_e_value = 0;
+            resetExtrusionValue();
         }
     }
 
@@ -572,7 +572,7 @@ namespace cura
             {
                 writeCode(fiber_prime_code);
             }
-            current_e_value = 0;
+            resetExtrusionValue();
         }
     }
 

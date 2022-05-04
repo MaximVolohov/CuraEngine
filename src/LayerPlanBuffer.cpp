@@ -488,7 +488,7 @@ namespace cura
             }
             else
             {
-                assert(extruder_plan.estimates.getMaterial() == 0.0 && "No extrusion time should mean no material usage!");
+                //assert((extruder_plan.estimates.getMaterial() == 0.0) && "No extrusion time should mean no material usage!");
                 if (extruder_settings.get<bool>("material_flow_dependent_temperature")) //Average flow is only used with flow dependent temperature.
                 {
                     logWarning("Empty extruder plans detected! Temperature control might suffer.\n");

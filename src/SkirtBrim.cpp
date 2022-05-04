@@ -198,11 +198,17 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
+            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+            
+            if(train.settings.get<bool>("machine_fiber_extruder"))
+            {
+                continue;
+            }
             if (extruder_nr == adhesion_extruder_nr || !extruder_is_used[extruder_nr])
             {
                 continue;
             }
-            const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+            
             const coord_t width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
             const coord_t minimal_length = train.settings.get<coord_t>("skirt_brim_minimal_length");
             offset_distance += last_width / 2 + width/2;
