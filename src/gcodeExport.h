@@ -92,6 +92,7 @@ namespace cura
 
       size_t current_extruder;
       double current_fan_speed;
+      double current_chamber_fan_speed;
       unsigned fan_number; // current print cooling fan number
       EGCodeFlavor flavor;
 
@@ -409,6 +410,7 @@ namespace cura
       void setExtruderFanNumber(int extruder);
 
       void writeFanCommand(double speed);
+      void writeChamberFanCommand(double speed);
 
       void writeTemperatureCommand(const size_t extruder, const Temperature &temperature, const bool wait = false);
       void writeBedTemperatureCommand(const Temperature &temperature, const bool wait = false);

@@ -258,11 +258,20 @@ namespace cura
             fan_speed_layer_time_settings.cool_fan_speed_max = train.settings.get<Ratio>("cool_fan_speed_max") * 100.0;
             fan_speed_layer_time_settings.cool_min_speed = train.settings.get<Velocity>("cool_min_speed");
             fan_speed_layer_time_settings.cool_fan_full_layer = train.settings.get<LayerIndex>("cool_fan_full_layer");
+            fan_speed_layer_time_settings.cool_chamber_fan_speed_min = train.settings.get<Ratio>("cool_chamber_fan_speed_min") * 100.0;
+            fan_speed_layer_time_settings.cool_chamber_fan_speed_max = train.settings.get<Ratio>("cool_chamber_fan_speed_max") * 100.0;
+
             if (!train.settings.get<bool>("cool_fan_enabled"))
             {
                 fan_speed_layer_time_settings.cool_fan_speed_0 = 0;
                 fan_speed_layer_time_settings.cool_fan_speed_min = 0;
                 fan_speed_layer_time_settings.cool_fan_speed_max = 0;
+            }
+            if (!train.settings.get<bool>("cool_chamber_fan_enabled"))
+            {
+                fan_speed_layer_time_settings.cool_fan_speed_0 = 0;
+                fan_speed_layer_time_settings.cool_chamber_fan_speed_min = 0;
+                fan_speed_layer_time_settings.cool_chamber_fan_speed_max = 0;
             }
         }
     }
@@ -523,6 +532,8 @@ namespace cura
     void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage &storage)
     {
         gcode.writeFanCommand(0);
+        gcode.writeChamberFanCommand(0);
+        
         gcode.setZ(max_object_height + 5000);
 
         Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
@@ -569,6 +580,7 @@ namespace cura
             {
                 double regular_fan_speed = train.settings.get<Ratio>("raft_base_fan_speed") * 100.0;
                 fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
+                fan_speed_layer_time_settings.cool_chamber_fan_speed_min = regular_fan_speed;
                 fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
             }
 
@@ -629,6 +641,7 @@ namespace cura
             {
                 double regular_fan_speed = train.settings.get<Ratio>("raft_interface_fan_speed") * 100.0;
                 fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
+                fan_speed_layer_time_settings.cool_chamber_fan_speed_min = regular_fan_speed;
                 fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
             }
 
@@ -683,6 +696,7 @@ namespace cura
             {
                 double regular_fan_speed = train.settings.get<Ratio>("raft_surface_fan_speed") * 100.0;
                 fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
+                fan_speed_layer_time_settings.cool_chamber_fan_speed_min = regular_fan_speed;
                 fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
             }
 

@@ -19,6 +19,9 @@ public:
     double cool_fan_speed_max;
     Velocity cool_min_speed;
     LayerIndex cool_fan_full_layer;
+    double cool_chamber_fan_speed_min;
+    double cool_chamber_fan_speed_max;
+
 };
 
 } // namespace cura

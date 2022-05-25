@@ -39,6 +39,10 @@ namespace cura
     {
         return fan_speed;
     }
+    double ExtruderPlan::getChamberFanSpeed()
+    {
+        return chamber_fan_speed;
+    }
 
     GCodePath *LayerPlan::getLatestPathWithConfig(const GCodePathConfig &config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
     {
@@ -1218,14 +1222,18 @@ namespace cura
     */
         // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
         fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
+        chamber_fan_speed = fan_speed_layer_time_settings.cool_chamber_fan_speed_min;
+
         double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
         if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time)
         {
             fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max;
+            chamber_fan_speed = fan_speed_layer_time_settings.cool_chamber_fan_speed_max;
         }
         else if (fan_speed_layer_time_settings.cool_min_layer_time >= fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
         {
             fan_speed = fan_speed_layer_time_settings.cool_fan_speed_min;
+            chamber_fan_speed = fan_speed_layer_time_settings.cool_chamber_fan_speed_min;
         }
         else if (force_minimal_layer_time && totalLayerTime < fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max)
         {
@@ -1234,7 +1242,14 @@ namespace cura
             double layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - fan_speed_layer_time_settings.cool_min_layer_time;
             double fraction_of_slope = (totalLayerTime - fan_speed_layer_time_settings.cool_min_layer_time) / layer_time_diff;
             fan_speed = fan_speed_layer_time_settings.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
+
+            double chamber_fan_speed_diff = fan_speed_layer_time_settings.cool_chamber_fan_speed_max - fan_speed_layer_time_settings.cool_chamber_fan_speed_min;
+            double chamber_layer_time_diff = fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max - fan_speed_layer_time_settings.cool_min_layer_time;
+            double chamber_fraction_of_slope = (totalLayerTime - fan_speed_layer_time_settings.cool_min_layer_time) / chamber_layer_time_diff;
+            chamber_fan_speed = fan_speed_layer_time_settings.cool_chamber_fan_speed_max - chamber_fan_speed_diff * chamber_fraction_of_slope;
+
         }
+       
         /*
     Supposing no influence of minimal layer time;
     i.e. layer time > min layer time fan speed min:
@@ -1257,6 +1272,7 @@ namespace cura
         {
             //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
             fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(LayerIndex(0), layer_nr) / fan_speed_layer_time_settings.cool_fan_full_layer;
+            chamber_fan_speed = fan_speed_layer_time_settings.cool_fan_speed_0 + (chamber_fan_speed - fan_speed_layer_time_settings.cool_fan_speed_0) * std::max(LayerIndex(0), layer_nr) / fan_speed_layer_time_settings.cool_fan_full_layer;
         }
     }
 
@@ -1344,7 +1360,10 @@ namespace cura
                     gcode.writeRetraction(retraction_config);
                 }
             }
+
             gcode.writeFanCommand(extruder_plan.getFanSpeed());
+            gcode.writeChamberFanCommand(extruder_plan.getChamberFanSpeed());
+            
             std::vector<GCodePath> &paths = extruder_plan.paths;
 
             extruder_plan.inserts.sort([](const NozzleTempInsert &a, const NozzleTempInsert &b) -> bool {
@@ -1452,7 +1471,10 @@ namespace cura
                 {
                     // if path provides a valid (in range 0-100) fan speed, use it
                     const double path_fan_speed = path.getFanSpeed();
+                    
                     gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
+                  
+                    gcode.writeChamberFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getChamberFanSpeed());
 
                     bool fiber_printing = extruder.settings.get<bool>("machine_fiber_extruder");
                     if (!fiber_printing)
