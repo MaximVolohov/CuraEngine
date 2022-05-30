@@ -24,6 +24,7 @@ namespace cura
         current_e_value = 0;
         current_extruder = 0;
         current_fan_speed = -1;
+        current_chamber_fan_speed = -1;
 
         total_print_times = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
@@ -1125,6 +1126,7 @@ namespace cura
         {
             fan_number = extruder_attr[extruder].fan_number;
             current_fan_speed = -1; // ensure fan speed gcode gets output for this fan
+            current_chamber_fan_speed = -1;
         }
     }
 
@@ -1164,6 +1166,26 @@ namespace cura
         }
 
         current_fan_speed = speed;
+    }
+    void GCodeExport::writeChamberFanCommand(double speed)
+    {
+        if (std::abs(current_chamber_fan_speed - speed) < 0.1)
+        {
+            return;
+        }
+        if (speed > 0)
+        {
+                *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100}<< " P" << 3;
+                *output_stream << new_line;  
+        }
+        else
+        {
+                *output_stream << "M107" << " P" << 3;
+                *output_stream << new_line;
+            
+        }
+
+        current_chamber_fan_speed = speed;
     }
 
     void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature &temperature, const bool wait)
@@ -1330,6 +1352,7 @@ namespace cura
     void GCodeExport::finalize(const char *endCode)
     {
         writeFanCommand(0);
+        writeChamberFanCommand(0);
         writeCode(endCode);
         int64_t print_time = getSumTotalPrintTimes();
         int mat_0 = getTotalFilamentUsed(0);

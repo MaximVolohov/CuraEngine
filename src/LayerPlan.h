@@ -177,6 +177,7 @@ namespace cura
      * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
      */
       double getFanSpeed();
+       double getChamberFanSpeed();
 
    protected:
       LayerIndex layer_nr;      //!< The layer number at which we are currently printing.
@@ -195,6 +196,7 @@ namespace cura
       double totalPrintTime; //!< The total naive time estimate for this extruder plan
 
       double fan_speed; //!< The fan speed to be used during this extruder plan
+      double chamber_fan_speed; //!< The fan speed to be used during this extruder plan
 
       /*!
      * Set the fan speed to be used while printing this extruder plan

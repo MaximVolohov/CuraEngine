@@ -98,7 +98,18 @@ void Wireframe2gcode::writeGCode()
             fanSpeed = scene_settings.get<Ratio>("cool_fan_speed_min") * 100.0;
         }
         gcode.writeFanCommand(fanSpeed);
-        
+
+  /***************Added chamber fan speed*******************************************************************/
+
+        double fanChamberSpeed = scene_settings.get<Ratio>("cool_chamber_fan_speed_max")*100;
+          // double fanSpeed = scene_settings.get<Ratio>("cool_fan_speed_max") * 100.0;
+        if (layer_nr == 0)
+        {
+            fanChamberSpeed = scene_settings.get<Ratio>("cool_chamber_fan_speed_min") * 100.0;
+        }
+        gcode.writeChamberFanCommand(fanChamberSpeed);
+
+  /*********************************************************************************************************/      
         for (size_t part_nr = 0; part_nr < layer.connections.size(); part_nr++)
         {
             WeaveConnectionPart& part = layer.connections[part_nr];
@@ -176,6 +187,7 @@ void Wireframe2gcode::writeGCode()
     gcode.writeDelay(0.3);
     
     gcode.writeFanCommand(0);
+    gcode.writeChamberFanCommand(0);
 
     finalize();
 }
