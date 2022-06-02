@@ -399,12 +399,16 @@ namespace cura
 
         // walls
         size_t processed_layer_count = 0;
+        size_t intermediate_layers = mesh.settings.get<size_t>("reinforcement_intermediate_layers");
 #pragma omp parallel for default(none) shared(mesh_layer_count, storage, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
         for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
         {
             logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
             processInsets(mesh, layer_number);
-            processFiberInsets(mesh, layer_number);
+            if(layer_number%(intermediate_layers+1) == 0){
+               processFiberInsets(mesh, layer_number);
+            }
+            
 #ifdef _OPENMP
             if (omp_get_thread_num() == 0)
 #endif
@@ -469,7 +473,14 @@ namespace cura
                 logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
                 if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < mesh_max_bottom_layer_count) //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
                 {
-                    processSkinsAndInfill(mesh, layer_number, process_infill, use_skin_on_layer);
+                    if(layer_number%(intermediate_layers+1) == 0)
+                    {    
+                       processSkinsAndInfill(mesh, layer_number, process_infill, use_skin_on_layer);
+                    }
+                    else{
+                        processSkinsAndInfill(mesh, layer_number, process_infill, true);
+                    }
+                    
                 }
 #ifdef _OPENMP
                 if (omp_get_thread_num() == 0)
