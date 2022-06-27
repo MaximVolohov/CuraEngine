@@ -400,7 +400,7 @@ namespace cura
         // walls
         size_t processed_layer_count = 0;
         size_t intermediate_layers = mesh.settings.get<size_t>("reinforcement_intermediate_layers");
-#pragma omp parallel for default(none) shared(mesh_layer_count, storage, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
+#pragma omp parallel for default(none) shared(mesh_layer_count, storage, mesh, inset_skin_progress_estimate, processed_layer_count, intermediate_layers) schedule(dynamic)
         for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
         {
             logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
