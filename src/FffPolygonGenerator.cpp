@@ -551,6 +551,7 @@ namespace cura
             {
                 continue;
             }
+            
             for (LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(mesh.layers.size()); layer_nr++)
             {
                 const ExtruderTrain &train_wall_x = mesh.settings.get<ExtruderTrain &>("wall_x_extruder_nr");
