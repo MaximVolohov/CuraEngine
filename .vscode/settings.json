@@ -4,9 +4,9 @@
     "cmake.buildDirectory": "${workspaceFolder}/cmake_build",
     "cmake.generator": "MinGW Makefiles",
     "cmake.configureEnvironment": {
-        "ARCUS_DIR": "C:/dev/libArcus-mingw/install_dir/lib/cmake/Arcus",
-        "PROTOBUF_MINGW_SRC": "C:/dev/protobuf-3.0.0-mingw/",
-        "PROTOBUF_MINGW_INSTALL": "C:/dev/protobuf-3.0.0-mingw/install_dir"
+        "ARCUS_DIR": "D:/Users/frylo/Documents/Devel/libArcus-mingw/install_dir/lib/cmake/Arcus",
+        "PROTOBUF_MINGW_SRC": "D:/Users/frylo/Documents/Devel/protobuf-3.0.0-mingw/",
+        "PROTOBUF_MINGW_INSTALL": "D:/Users/frylo/Documents/Devel/protobuf-3.0.0-mingw/install_dir"
     },
     "cmake.configureSettings": {
         "Arcus_DIR": "${env.ARCUS_DIR}",

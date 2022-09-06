@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
 #include <limits> // numeric_limits
@@ -35,7 +35,7 @@ namespace cura
         gcode.preSetup();
 
         Scene &scene = Application::getInstance().current_slice->scene;
-        if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
+        if (scene.current_mesh_group == scene.mesh_groups.begin()) // First mesh group.
         {
             gcode.resetTotalPrintTimeAndFilament();
             gcode.setInitialTemps(getStartExtruder(storage));
@@ -60,7 +60,7 @@ namespace cura
         size_t total_layers = 0;
         for (SliceMeshStorage &mesh : storage.meshes)
         {
-            if (mesh.isPrinted()) //No need to process higher layers if the non-printed meshes are higher than the normal meshes.
+            if (mesh.isPrinted()) // No need to process higher layers if the non-printed meshes are higher than the normal meshes.
             {
                 total_layers = std::max(total_layers, mesh.layers.size());
             }
@@ -125,7 +125,7 @@ namespace cura
 
         Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
-        //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
+        // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
         max_object_height = std::max(max_object_height, storage.model_max.z);
 
         constexpr bool force = true;
@@ -283,17 +283,17 @@ namespace cura
         {
             ExtruderTrain &train = scene.extruders[extruder_index];
             RetractionConfig &retraction_config = storage.retraction_config_per_extruder[extruder_index];
-            retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0; //Retraction distance in mm.
-            retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount");                                       //Extra prime volume in mm^3.
+            retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
+            retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount");                                       // Extra prime volume in mm^3.
             retraction_config.speed = train.settings.get<Velocity>("retraction_retract_speed");
             retraction_config.primeSpeed = train.settings.get<Velocity>("retraction_prime_speed");
             retraction_config.zHop = train.settings.get<coord_t>("retraction_hop");
             retraction_config.retraction_min_travel_distance = train.settings.get<coord_t>("retraction_min_travel");
-            retraction_config.retraction_extrusion_window = train.settings.get<double>("retraction_extrusion_window"); //Window to count retractions in in mm of extruded filament.
+            retraction_config.retraction_extrusion_window = train.settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
             retraction_config.retraction_count_max = train.settings.get<size_t>("retraction_count_max");
 
             RetractionConfig &switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder_index];
-            switch_retraction_config.distance = train.settings.get<double>("switch_extruder_retraction_amount"); //Retraction distance in mm.
+            switch_retraction_config.distance = train.settings.get<double>("switch_extruder_retraction_amount"); // Retraction distance in mm.
             switch_retraction_config.prime_volume = 0.0;
             switch_retraction_config.speed = train.settings.get<Velocity>("switch_extruder_retraction_speed");
             switch_retraction_config.primeSpeed = train.settings.get<Velocity>("switch_extruder_prime_speed");
@@ -471,7 +471,7 @@ namespace cura
     void FffGcodeWriter::processStartingCode(const SliceDataStorage &storage, const size_t start_extruder_nr)
     {
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-        if (Application::getInstance().communication->isSequential()) //If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
+        if (Application::getInstance().communication->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
         {
             std::string prefix = gcode.getFileHeader(extruder_is_used);
             gcode.writeCode(prefix.c_str());
@@ -533,7 +533,7 @@ namespace cura
     {
         gcode.writeFanCommand(0);
         gcode.writeChamberFanCommand(0);
-        
+
         gcode.setZ(max_object_height + 5000);
 
         Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
@@ -592,7 +592,7 @@ namespace cura
             Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
             Polygons wall = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_base_config.getLineWidth() / 2);
-            wall.simplify(); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
+            wall.simplify(); // Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
             gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.raft_base_config);
 
             Polygons raftLines;
@@ -653,8 +653,8 @@ namespace cura
 
             Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
-            Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-            raft_outline_path.simplify();                                                                                                   //Remove those micron-movements.
+            Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
+            raft_outline_path.simplify();                                                                                                   // Remove those micron-movements.
             constexpr coord_t infill_outline_width = 0;
             Polygons raftLines;
             Polygons output_gaps;
@@ -710,8 +710,8 @@ namespace cura
             Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
             const coord_t maximum_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
-            Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-            raft_outline_path.simplify(maximum_resolution);                                                                               //Remove those micron-movements.
+            Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
+            raft_outline_path.simplify(maximum_resolution);                                                                               // Remove those micron-movements.
             constexpr coord_t infill_outline_width = 0;
             Polygons raft_lines;
             Polygons output_gaps;
@@ -961,7 +961,7 @@ namespace cura
             gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
             gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
 
-            //Add polygon in reverse order
+            // Add polygon in reverse order
             const coord_t wall_0_wipe_dist = 0;
             const bool spiralize = false;
             const float flow_ratio = 1.0;
@@ -980,7 +980,7 @@ namespace cura
         }
         if (storage.oozeShield.size() > 0 && layer_nr < storage.oozeShield.size())
         {
-            gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], gcode_layer.configs_storage.skirt_brim_config_per_extruder[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
+            gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], gcode_layer.configs_storage.skirt_brim_config_per_extruder[0]); // TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
         }
     }
 
@@ -1013,7 +1013,7 @@ namespace cura
             }
         }
 
-        gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage.skirt_brim_config_per_extruder[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
+        gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage.skirt_brim_config_per_extruder[0]); // TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
     }
 
     void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage &storage)
@@ -1046,7 +1046,7 @@ namespace cura
 
         std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
         bool start_extruder_is_fiber = Application::getInstance().current_slice->scene.extruders[start_extruder].settings.get<bool>("machine_fiber_extruder");
-        //The outermost prime tower extruder is always used if there is a prime tower.
+        // The outermost prime tower extruder is always used if there is a prime tower.
         if (mesh_group_settings.get<bool>("prime_tower_enable") && layer_nr <= storage.max_print_height_second_to_last_extruder)
         {
             extruder_is_used_on_this_layer[storage.primeTower.extruder_order[0]] = true;
@@ -1242,11 +1242,11 @@ namespace cura
 
         added_something = added_something | processSkinAndPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
-        //TODO: process fiber infill here
+        // TODO: process fiber infill here
         added_something = added_something | processFiberInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
         added_something = added_something | processFiberInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
-        //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
+        // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (added_something && (!mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers"))))
         {
             coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
@@ -1297,7 +1297,7 @@ namespace cura
         }
 
         const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
-        AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+        AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
         if (!mesh.infill_angles.empty())
         {
             const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
@@ -1306,7 +1306,7 @@ namespace cura
         const Point3 mesh_middle = mesh.bounding_box.getMiddle();
         const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
 
-        //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
+        // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         bool added_something = false;
         for (unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
         {
@@ -1376,7 +1376,7 @@ namespace cura
         bool added_something = false;
         const coord_t infill_line_width = mesh_config.infill_config[0].getLineWidth();
 
-        //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
+        // Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
         Polygons infill_polygons;
         Polygons infill_lines;
         Polygons output_gaps;
@@ -1386,7 +1386,7 @@ namespace cura
         const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
         const size_t wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
-        AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+        AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
         if (mesh.infill_angles.size() > 0)
         {
             const size_t combined_infill_layers = std::max(unsigned(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
@@ -1427,7 +1427,7 @@ namespace cura
                 //                 ^ middle density line dist
                 //     ^   highest density line dist
 
-                //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
+                // All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
                 infill_line_distance_here /= 2;
             }
 
@@ -1497,7 +1497,7 @@ namespace cura
         Polygons infill_polygons;
         Polygons infill_lines;
         Polygons output_gaps;
-        AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
+        AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
         if (mesh.fiber_infill_angles.size() > 0)
         {
             infill_angle = mesh.fiber_infill_angles.at(gcode_layer.getLayerNr() % mesh.fiber_infill_angles.size());
@@ -1509,7 +1509,7 @@ namespace cura
 
         Infill infill_comp(pattern, true, false, part.fiber_infill_area, 0, fiber_infill_line_width, fiber_line_distance, 0, 1, infill_angle, gcode_layer.z, 0, 0, Point(), nullptr, false, false, false, 0, 0, 5, minimum_infill_line_length);
         infill_comp.generate(infill_polygons, infill_lines, output_gaps, mesh.cross_fill_provider, &mesh);
-        //TODO: combine infill lines for fiber printing
+        // TODO: combine infill lines for fiber printing
 
         if (output_gaps.size() > 0 && extruder_nr == skin_extruder.extruder_nr)
         {
@@ -1529,7 +1529,7 @@ namespace cura
                 Point p1 = infill_lines[i][0];
                 if (p0 == p1)
                 {
-                    //polygon.add(infill_lines[i][0]);
+                    // polygon.add(infill_lines[i][0]);
                     polygon.add(infill_lines[i][1]);
                 }
                 else
@@ -1540,42 +1540,42 @@ namespace cura
             }
             printable_infill_polygons.add(polygon);
 
-            //if (fiber_extruder)
+            // if (fiber_extruder)
             //{
-            //    const double fiber_distance = fiber_infill_extruder.settings.get<double>(
-            //        "machine_fiber_cut_min_distance");
+            //     const double fiber_distance = fiber_infill_extruder.settings.get<double>(
+            //         "machine_fiber_cut_min_distance");
             //
-            //    for (PolygonRef poly : infill_polygons)
-            //    {
+            //     for (PolygonRef poly : infill_polygons)
+            //     {
             //
-            //        // polylines for fiber extruder
-            //        if (!poly.shorterThan(MM2INT(fiber_distance)))
-            //        {
-            //            printable_infill_polygons.add(poly);
-            //        }
-            //    }
-            //    for (PolygonRef poly : possibly_printable_infill_polygons)
-            //    {
+            //         // polylines for fiber extruder
+            //         if (!poly.shorterThan(MM2INT(fiber_distance)))
+            //         {
+            //             printable_infill_polygons.add(poly);
+            //         }
+            //     }
+            //     for (PolygonRef poly : possibly_printable_infill_polygons)
+            //     {
             //
-            //        // polylines for fiber extruder
-            //        if (!poly.shorterThan(MM2INT(fiber_distance)))
-            //        {
-            //            if (poly.size() > 2)
-            //            {
-            //                printable_infill_polygons.add(poly);
-            //            }
-            //            else
-            //            {
-            //                printable_infill_lines.add(poly);
-            //            }
-            //        }
-            //    }
-            //}
-            //else
+            //         // polylines for fiber extruder
+            //         if (!poly.shorterThan(MM2INT(fiber_distance)))
+            //         {
+            //             if (poly.size() > 2)
+            //             {
+            //                 printable_infill_polygons.add(poly);
+            //             }
+            //             else
+            //             {
+            //                 printable_infill_lines.add(poly);
+            //             }
+            //         }
+            //     }
+            // }
+            // else
             //{
-            //printable_infill_lines = infill_lines;
-            //printable_infill_polygons = infill_polygons;
-            //}
+            // printable_infill_lines = infill_lines;
+            // printable_infill_polygons = infill_polygons;
+            // }
 
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1877,14 +1877,21 @@ namespace cura
                 gcode_layer.setIsInside(true); // going to print stuff inside print object
                 WallOverlapComputation *wall_overlap_computation(nullptr);
                 Polygon connected_wall;
+                int prev_idx = 0;
                 for (int inset_number = part.fiber_insets.size() - 1; inset_number >= 0; inset_number--)
                 {
                     if (part.fiber_insets[inset_number].size() <= inset_per_wall)
                     {
                         continue;
                     }
-                    //TODO: start with closest point
-                    int start_idx = 0;
+                    // TODO: start with closest point
+                    bool random = mesh.settings.get<EZSeamType>("reinforcement_z_seam_type") == EZSeamType::RANDOM;
+                    int start_idx = random ? rand() % part.fiber_insets[inset_number][inset_per_wall].size() : 0;
+                    while (random && start_idx == prev_idx)
+                    {
+                        start_idx = rand() % part.fiber_insets[inset_number][inset_per_wall].size();
+                    }
+                    prev_idx = start_idx;
                     if (!connected_wall.empty())
                     {
                         coord_t min_dist_2 = vSize2(connected_wall[0] - part.fiber_insets[inset_number][inset_per_wall][0]);
@@ -2503,7 +2510,7 @@ namespace cura
         }
         island_order_optimizer.optimize();
 
-        //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
+        // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         const std::vector<SupportInfillPart> &part_list = support_layer.support_infill_parts;
         for (int part_idx : island_order_optimizer.polyOrder)
         {
@@ -2599,7 +2606,7 @@ namespace cura
 
         if (!storage.support.generated || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_roof.empty())
         {
-            return false; //No need to generate support roof if there's no support.
+            return false; // No need to generate support roof if there's no support.
         }
 
         const size_t roof_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain &>("support_roof_extruder_nr").extruder_nr;
@@ -2649,7 +2656,7 @@ namespace cura
         roof_computation.generate(roof_polygons, roof_lines, output_gaps);
         if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_polygons.empty() && roof_lines.empty()))
         {
-            return false; //We didn't create any support roof.
+            return false; // We didn't create any support roof.
         }
         setExtruder_addPrime(storage, gcode_layer, roof_extruder_nr);
         gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
@@ -2673,7 +2680,7 @@ namespace cura
 
         if (!storage.support.generated || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_bottom.empty())
         {
-            return false; //No need to generate support bottoms if there's no support.
+            return false; // No need to generate support bottoms if there's no support.
         }
 
         const size_t bottom_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain &>("support_bottom_extruder_nr").extruder_nr;
@@ -2726,25 +2733,25 @@ namespace cura
     {
         if (pattern == EFillMethod::CONCENTRIC)
         {
-            return 0; //Concentric has no rotation.
+            return 0; // Concentric has no rotation.
         }
         if (pattern == EFillMethod::TRIANGLES)
         {
-            return 90; //Triangular support interface shouldn't alternate every layer.
+            return 90; // Triangular support interface shouldn't alternate every layer.
         }
 
         for (const SliceMeshStorage &mesh : storage.meshes)
         {
             if (mesh.settings.get<coord_t>(interface_height_setting) >= 2 * Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height"))
             {
-                //Some roofs are quite thick.
-                //Alternate between the two kinds of diagonal: / and \ .
-                // + 2) % 2 is to handle negative layer numbers.
+                // Some roofs are quite thick.
+                // Alternate between the two kinds of diagonal: / and \ .
+                //  + 2) % 2 is to handle negative layer numbers.
                 return 45 + (((layer_nr % 2) + 2) % 2) * 90;
             }
         }
 
-        return 90; //Perpendicular to support lines.
+        return 90; // Perpendicular to support lines.
     }
 
     void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage &storage, LayerPlan &gcode_layer, const size_t extruder_nr) const
@@ -2752,7 +2759,7 @@ namespace cura
         const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
 
         const size_t previous_extruder = gcode_layer.getExtruder();
-        if (previous_extruder == extruder_nr && !(extruder_nr == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount()))) //No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
+        if (previous_extruder == extruder_nr && !(extruder_nr == outermost_prime_tower_extruder && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount()))) // No unnecessary switches, unless switching to extruder for the outer shell of the prime tower.
         {
             return;
         }
@@ -2781,7 +2788,7 @@ namespace cura
 
         // The first layer of the prime tower is printed with one material only, so do not prime another material on the
         // first layer again.
-        if (((extruder_changed && gcode_layer.getLayerNr() > 0) || extruder_nr == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount())) //Always print a prime tower with outermost extruder.
+        if (((extruder_changed && gcode_layer.getLayerNr() > 0) || extruder_nr == outermost_prime_tower_extruder) && gcode_layer.getLayerNr() >= -static_cast<LayerIndex>(Raft::getFillerLayerCount())) // Always print a prime tower with outermost extruder.
         {
             addPrimeTower(storage, gcode_layer, previous_extruder);
         }
@@ -2808,8 +2815,8 @@ namespace cura
         const Settings &mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
         if (mesh_group_settings.get<bool>("machine_heated_bed"))
         {
-            gcode.writeBedTemperatureCommand(0); //Cool down the bed (M140).
-            //Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
+            gcode.writeBedTemperatureCommand(0); // Cool down the bed (M140).
+            // Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
         }
 
         const Duration print_time = gcode.getSumTotalPrintTimes();
@@ -2873,4 +2880,4 @@ namespace cura
     */
     }
 
-} //namespace cura
+} // namespace cura
