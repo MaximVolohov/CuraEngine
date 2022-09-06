@@ -59,3 +59,5 @@ documentation/latex/*
 ## Test results.
 tests/output.xml
 callgrind.out.*
+
+.vscode
