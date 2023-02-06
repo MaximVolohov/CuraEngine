@@ -374,6 +374,28 @@ namespace cura
     }
 
     template <>
+    EReinforcementPattern Settings::get<EReinforcementPattern>(const std::string &key) const
+    {
+        const std::string &value = get<std::string>(key);
+        if (value == "concentric")
+        {
+            return EReinforcementPattern::CONCENTRIC;
+        }
+        else if (value == "grid")
+        {
+            return EReinforcementPattern::GRID;
+        }
+        else if(value == "lines")
+        {
+            return EReinforcementPattern::LINES;
+        }
+        else
+        {
+            return EReinforcementPattern::CONCENTRIC;
+        }
+    }
+
+    template <>
     EReinforcementType Settings::get<EReinforcementType>(const std::string &key) const
     {
         const std::string &value = get<std::string>(key);

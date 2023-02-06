@@ -1502,7 +1502,21 @@ namespace cura
         {
             infill_angle = mesh.fiber_infill_angles.at(gcode_layer.getLayerNr() % mesh.fiber_infill_angles.size());
         }
-        const EFillMethod pattern = EFillMethod::FIBER;
+        
+        EFillMethod pattern;
+        const EReinforcementPattern reinforcement_pattern = mesh.settings.get<EReinforcementPattern>("fiber_infill_pattern");
+        if (reinforcement_pattern == EReinforcementPattern::LINES)
+        {
+            pattern = EFillMethod::FIBER_LINE;
+        } 
+        else if(reinforcement_pattern == EReinforcementPattern::GRID)
+        {
+            pattern = EFillMethod::FIBER_GRID;
+        }
+        else 
+        {
+            pattern = EFillMethod::FIBER_CONCENTRIC;
+        }
         const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("reinforcement_min_fiber_line_length");
         const coord_t fiber_infill_line_width = mesh_config.fiber_infill_config.getLineWidth();
         const coord_t fiber_line_distance = mesh.settings.get<coord_t>("fiber_line_distance");

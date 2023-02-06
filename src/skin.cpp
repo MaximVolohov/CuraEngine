@@ -52,7 +52,7 @@ namespace cura
             const ExtruderTrain &train_infill = mesh.settings.get<ExtruderTrain &>("infill_extruder_nr");
             const Ratio infill_line_width_factor = (layer_nr == 0) ? train_infill.settings.get<Ratio>("initial_layer_line_width_factor") : Ratio(1.0);
             const bool infill_is_dense = mesh.settings.get<coord_t>("infill_line_distance") < mesh.settings.get<coord_t>("infill_line_width") * infill_line_width_factor + 10;
-            if (!infill_is_dense && mesh.settings.get<EFillMethod>("infill_pattern") != EFillMethod::CONCENTRIC)
+            if (!infill_is_dense && (mesh.settings.get<EFillMethod>("infill_pattern") != EFillMethod::CONCENTRIC))
             {
                 infill_skin_overlap = innermost_wall_line_width / 2;
             }
@@ -508,8 +508,9 @@ namespace cura
         const bool reinforcement_enabled = mesh.settings.get<bool>("reinforcement_enabled");
         const size_t reinforcement_start_layer = mesh.settings.get<size_t>("reinforcement_start_layer");
         const size_t reinforcement_layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
-        const EReinforcementType reinforcement_type = mesh.settings.get<EReinforcementType>("reinforcement_type");
-        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count) && reinforcement_type == EReinforcementType::ISOTROPIC)
+       // const EReinforcementType reinforcement_type = mesh.settings.get<EReinforcementType>("reinforcement_type");
+        const EReinforcementPattern reinforcement_pattern = mesh.settings.get<EReinforcementPattern>("fiber_infill_pattern");
+        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count) && (reinforcement_pattern == EReinforcementPattern::LINES || reinforcement_pattern == EReinforcementPattern::GRID || reinforcement_pattern == EReinforcementPattern::CONCENTRIC))
         {
             Polygons offsetted_infill = infill.offset(infill_skin_overlap);
             double area = offsetted_infill.area();
