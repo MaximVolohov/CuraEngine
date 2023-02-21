@@ -1536,61 +1536,105 @@ namespace cura
             Polygons printable_infill_lines;
             Polygons printable_infill_polygons;
             Polygons possibly_printable_infill_polygons;
-            Polygon polygon(infill_lines[0]);
-            for (size_t i = 1; i < infill_lines.size(); i++)
+            bool close_printable_infill = false;
+            if(infill_lines.size()>0)
             {
-                Point p0 = polygon.back();
-                Point p1 = infill_lines[i][0];
-                if (p0 == p1)
-                {
+              Polygon polygon(infill_lines[0]);
+              for (size_t i = 1; i < infill_lines.size(); i++)
+              {
+                  Point p0 = polygon.back();
+                  Point p1 = infill_lines[i][0];
+                  if (p0 == p1)
+                  {
                     // polygon.add(infill_lines[i][0]);
-                    polygon.add(infill_lines[i][1]);
-                }
-                else
-                {
+                      polygon.add(infill_lines[i][1]);
+                  }
+                  else
+                  {
                     printable_infill_polygons.add(polygon);
                     polygon = Polygon(infill_lines[i]);
-                }
+                  }
+              }
+               printable_infill_polygons.add(polygon);
             }
-            printable_infill_polygons.add(polygon);
-
-            // if (fiber_extruder)
-            //{
-            //     const double fiber_distance = fiber_infill_extruder.settings.get<double>(
-            //         "machine_fiber_cut_min_distance");
-            //
-            //     for (PolygonRef poly : infill_polygons)
-            //     {
-            //
-            //         // polylines for fiber extruder
-            //         if (!poly.shorterThan(MM2INT(fiber_distance)))
-            //         {
-            //             printable_infill_polygons.add(poly);
-            //         }
-            //     }
-            //     for (PolygonRef poly : possibly_printable_infill_polygons)
-            //     {
-            //
-            //         // polylines for fiber extruder
-            //         if (!poly.shorterThan(MM2INT(fiber_distance)))
-            //         {
-            //             if (poly.size() > 2)
-            //             {
-            //                 printable_infill_polygons.add(poly);
-            //             }
-            //             else
-            //             {
-            //                 printable_infill_lines.add(poly);
-            //             }
-            //         }
-            //     }
-            // }
-            // else
-            //{
-            // printable_infill_lines = infill_lines;
-            // printable_infill_polygons = infill_polygons;
-            // }
-
+            else if(infill_polygons.size() > 0)
+            {
+               Polygon connected_infill;
+               coord_t fiber_line_width = mesh.settings.get<coord_t>("fiber_infill_line_width");
+               const bool connect_polygons = mesh.settings.get<bool>("fiber_infill_round_connect");
+               coord_t min_fiber_line_length = mesh.settings.get<coord_t>("reinforcement_min_fiber_line_length");
+               if(connect_polygons)
+               { 
+                    for (size_t polygon_number = 0; polygon_number < infill_polygons.size(); polygon_number++)
+                    {      
+                       
+                        int prev_idx = 0;
+                        Polygon intermediate_polygon;
+                       
+                        Point start_point = infill_polygons[polygon_number][0];
+                        Point end_point = infill_polygons[polygon_number][1];
+                        Point medium_point = (end_point - start_point)/2 + start_point;
+                        intermediate_polygon.add(medium_point);
+                        for(size_t point_count = 1; point_count < infill_polygons[polygon_number].size(); point_count++)
+                        {
+                            intermediate_polygon.add(infill_polygons[polygon_number][point_count]);
+                            if(point_count == (infill_polygons[polygon_number].size()-1))
+                            {
+                                intermediate_polygon.add(infill_polygons[polygon_number][0]);
+                            }
+                        }
+                        bool random = mesh.settings.get<EZSeamType>("reinforcement_z_seam_type") == EZSeamType::RANDOM;
+                        int start_idx = random ? rand() % intermediate_polygon.size() : 0;
+                        while (random && start_idx == prev_idx)
+                        {
+                            start_idx = rand() % intermediate_polygon.size();
+                        }
+                        prev_idx = start_idx;
+                        if (!connected_infill.empty())
+                        {
+                            coord_t min_dist_2 = vSize2(connected_infill[0] - intermediate_polygon[0]);
+                            for (size_t point_idx = 1; point_idx < intermediate_polygon.size(); point_idx++)
+                            {
+                                if (vSize2(connected_infill[0] - intermediate_polygon[point_idx]) < min_dist_2)
+                                {
+                                    min_dist_2 = vSize2(connected_infill[0] - intermediate_polygon[point_idx]);
+                                    start_idx = point_idx;
+                                }
+                            }
+                        }
+                        
+                        for (size_t point_idx = 0; point_idx < intermediate_polygon.size(); point_idx++)
+                        {
+                            connected_infill.add(intermediate_polygon[(start_idx + point_idx) % intermediate_polygon.size()]);
+                        }
+                        Point p0 = connected_infill.back();
+                        Point p1 = intermediate_polygon[start_idx];
+                        for (int last_point_idx = connected_infill.size() - 1; last_point_idx >= 0; last_point_idx--)
+                        {
+                            if (vSize2(p1 - p0) < (fiber_line_width * fiber_line_width * 4))
+                            {   
+                                connected_infill.pop_back();
+                                p0 = connected_infill.back();
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        double ratio = (vSizeMM(p1 - p0) - INT2MM(fiber_line_width*2)) / (vSizeMM(p1 - p0));
+                        Point px = (p1 - p0) * ratio + p0;
+                        connected_infill.add(px);    
+                    }   
+                    printable_infill_polygons.add(connected_infill); 
+                    close_printable_infill = false;
+               } 
+               else
+               {
+                    printable_infill_polygons = infill_polygons; 
+                    close_printable_infill = true; 
+               }   
+            }
+            
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -1598,7 +1642,7 @@ namespace cura
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(printable_infill_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.fiber_infill_config, nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false, false, true);
+                gcode_layer.addPolygonsByOptimizer(printable_infill_polygons, mesh_config.fiber_infill_config, nullptr, ZSeamConfig(), 0LL, false, 1.0_r, false, false, close_printable_infill, true);
             }
             const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)

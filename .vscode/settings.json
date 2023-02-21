@@ -77,6 +77,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "xlocale": "cpp",
-        "xlocnum": "cpp"
+        "xlocnum": "cpp",
+        "xiosbase": "cpp",
+        "xutility": "cpp"
     }
 }
