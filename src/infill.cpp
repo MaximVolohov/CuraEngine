@@ -88,7 +88,7 @@ namespace cura
             connector.add(result_polygons);
             result_polygons = connector.connect();
         }
-        if (pattern == EFillMethod::FIBER)
+        if (pattern == EFillMethod::FIBER_LINE||pattern == EFillMethod::FIBER_GRID)
         {
             Polygons line_polygons;
             for (size_t line_idx = 0; line_idx < result_lines.size(); line_idx++)
@@ -109,6 +109,13 @@ namespace cura
             line_polygons = line_polygons.offset(-infill_line_width);
             result_gaps = in_outline.difference(line_polygons);
         }
+        else if(pattern == EFillMethod::FIBER_CONCENTRIC){
+            Polygons line_polygons = result_polygons;
+            line_polygons = line_polygons.offset(infill_line_width);
+            line_polygons = line_polygons.unionPolygons();
+            line_polygons = line_polygons.offset(-infill_line_width);
+            result_gaps = in_outline.difference(line_polygons);
+        }
     }
 
     void Infill::_generate(Polygons &result_polygons, Polygons &result_lines, const SierpinskiFillProvider *cross_fill_provider, const SliceMeshStorage *mesh)
@@ -118,7 +125,7 @@ namespace cura
         if (line_distance == 0)
             return;
 
-        if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+        if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::FIBER_LINE|| pattern == EFillMethod::FIBER_GRID|| pattern == EFillMethod::FIBER_CONCENTRIC))
         {
             outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
         }
@@ -172,8 +179,15 @@ namespace cura
         case EFillMethod::GYROID:
             generateGyroidInfill(result_lines);
             break;
-        case EFillMethod::FIBER:
+        case EFillMethod::FIBER_LINE:
             generateFiberInfill(result_lines, line_distance, fill_angle);
+            break;
+        case EFillMethod::FIBER_GRID:
+            generateFiberInfill(result_lines, line_distance, fill_angle);
+            generateFiberInfill(result_lines, line_distance, fill_angle + 90);
+            break;
+        case EFillMethod::FIBER_CONCENTRIC:
+            generateConcentricInfill(result_polygons, line_distance);
             break;
         default:
             logError("Fill pattern has unknown value.\n");
@@ -190,7 +204,7 @@ namespace cura
 
             connectLines(result_lines);
         }
-        if (zig_zaggify && pattern == EFillMethod::FIBER)
+        if (zig_zaggify && (pattern == EFillMethod::FIBER_LINE || pattern == EFillMethod::FIBER_GRID))
         {
             //Connect infill
             result_lines.clear();
@@ -461,7 +475,7 @@ namespace cura
                     continue;
                 }
                 //We have to create our own lines when they are not created by the method connectLines.
-                if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES || pattern == EFillMethod::FIBER)
+                if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES || pattern == EFillMethod::FIBER_LINE || pattern == EFillMethod::FIBER_GRID)
                 {
                     Point start = Point(x, crossings[crossing_idx]);
                     Point end = Point(x, crossings[crossing_idx + 1]);

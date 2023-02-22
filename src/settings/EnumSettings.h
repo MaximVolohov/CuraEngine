@@ -29,7 +29,9 @@ namespace cura
         CROSS,
         CROSS_3D,
         GYROID,
-        FIBER,
+        FIBER_LINE,
+        FIBER_GRID,
+        FIBER_CONCENTRIC,
         NONE
     };
 
@@ -44,6 +46,13 @@ namespace cura
     {
         CONCENTRIC,
         ISOTROPIC
+    };
+
+    enum class EReinforcementPattern
+    {
+        GRID,
+        LINES,
+        CONCENTRIC
     };
 
     /*!

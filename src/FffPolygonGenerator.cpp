@@ -473,14 +473,19 @@ namespace cura
                 logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
                 if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < mesh_max_bottom_layer_count) //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
                 {
-                    if(layer_number%(intermediate_layers+1) == 0)
-                    {    
-                       processSkinsAndInfill(mesh, layer_number, process_infill, use_skin_on_layer);
+                    if((layer_number >= reinforcement_start_layer-1)&&(layer_number<(reinforcement_start_layer + reinforcement_layer_count)))
+                    {
+                        if((layer_number%(intermediate_layers+1) == 0))
+                         {    
+                           processSkinsAndInfill(mesh, layer_number, process_infill, false);
+                         }
+                        else{
+                           processSkinsAndInfill(mesh, layer_number, process_infill, true);
+                        }
                     }
                     else{
-                        processSkinsAndInfill(mesh, layer_number, process_infill, true);
-                    }
-                    
+                        processSkinsAndInfill(mesh, layer_number, process_infill, use_skin_on_layer);
+                    }   
                 }
 #ifdef _OPENMP
                 if (omp_get_thread_num() == 0)
