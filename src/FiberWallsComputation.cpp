@@ -35,7 +35,6 @@ namespace cura
         coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0");
         coord_t line_width_x = settings.get<coord_t>("wall_line_width_x");
         coord_t inset_offset = inset_count > 1 ? line_width_x / 2 : line_width_0 / 2;
-        EWallsToReinforce walls_to_reinforce = settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
         for (size_t i = 0; i < fiber_inset_count; i++)
         {
             part->fiber_insets.push_back(Polygons());
@@ -48,25 +47,7 @@ namespace cura
             {
                 offsetted = part->insets.back().offset(-inset_offset - line_width / 2 - line_width * i, ClipperLib::jtSquare);
             }
-            if (walls_to_reinforce == EWallsToReinforce::ALL)
-            {
-                part->fiber_insets[i] = offsetted;
-            }
-            else
-            {
-                for (size_t j = 0; j < offsetted.size(); j++)
-                {
-                    const bool is_outer = offsetted[j].orientation();
-                    if (walls_to_reinforce == EWallsToReinforce::INNER && !is_outer)
-                    {
-                        part->fiber_insets.back().add(offsetted[j]);
-                    }
-                    else if (walls_to_reinforce == EWallsToReinforce::OUTER && is_outer)
-                    {
-                        part->fiber_insets.back().add(offsetted[j]);
-                    }
-                }
-            }
+            part->fiber_insets[i] = offsetted;
 
             //const size_t inset_part_count = part->fiber_insets[i].size();
             //constexpr size_t minimum_part_saving = 3; //Only try if the part has more pieces than the previous inset and saves at least this many parts.
