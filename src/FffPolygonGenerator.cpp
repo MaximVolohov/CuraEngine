@@ -601,31 +601,6 @@ namespace cura
                         {
                             coord_t fiber_line_width = mesh.settings.get<coord_t>("fiber_infill_line_width");
                             outer = part.fiber_insets.back().offset(-1 * fiber_line_width / 2 - perimeter_gaps_extra_offset);
-                            EWallsToReinforce walls_to_reinforce = mesh.settings.get<EWallsToReinforce>("reinforcement_walls_to_reinforce");
-                            if (walls_to_reinforce != EWallsToReinforce::ALL)
-                            {
-                                for (size_t i = 0; i < outer.size(); i++)
-                                {
-                                    if (walls_to_reinforce == EWallsToReinforce::INNER && outer[i].orientation())
-                                    {
-                                        outer[i].reverse();
-                                    }
-                                }
-                                Polygons insets = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-                                for (size_t i = 0; i < insets.size(); i++)
-                                {
-
-                                    bool outer_inset = insets[i].orientation();
-                                    if (walls_to_reinforce == EWallsToReinforce::INNER && outer_inset)
-                                    {
-                                        outer.insert(insets[i], 0);
-                                    }
-                                    else if (walls_to_reinforce == EWallsToReinforce::OUTER && !outer_inset)
-                                    {
-                                        outer.add(insets[i]);
-                                    }
-                                }
-                            }
                         }
 
                         Polygons inner = part.infill_area;
