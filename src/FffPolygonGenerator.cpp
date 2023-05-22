@@ -405,10 +405,13 @@ namespace cura
         {
             logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
             processInsets(mesh, layer_number);
-            if(layer_number%(intermediate_layers+1) == 0){
-               processFiberInsets(mesh, layer_number);
-            }
-            
+            if (layer_number < (mesh.layers.size()- mesh.settings.get<size_t>("top_layers")) && layer_number > mesh.settings.get<size_t>("bottom_layers"))
+            {
+               if(layer_number%(intermediate_layers+1) == 0)
+               {
+                   processFiberInsets(mesh, layer_number);
+               }
+            }        
 #ifdef _OPENMP
             if (omp_get_thread_num() == 0)
 #endif
@@ -466,8 +469,8 @@ namespace cura
                 size_t reinforcement_layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
                 size_t reinforcement_bottom_skin_layers = mesh.settings.get<size_t>("reinforcement_bottom_skin_layers");
                 size_t reinforcement_top_skin_layers = mesh.settings.get<size_t>("reinforcement_top_skin_layers");
-                bool layer_number_on_fiber_bottom = layer_number >= (reinforcement_start_layer - reinforcement_bottom_skin_layers) && layer_number < reinforcement_start_layer;
-                bool layer_number_on_fiber_top = layer_number >= (reinforcement_start_layer + reinforcement_layer_count) && layer_number < (reinforcement_start_layer + reinforcement_layer_count + reinforcement_top_skin_layers);
+                bool layer_number_on_fiber_bottom = layer_number >= (reinforcement_start_layer-1 - reinforcement_bottom_skin_layers) && layer_number < reinforcement_start_layer;
+                bool layer_number_on_fiber_top = layer_number >= (reinforcement_start_layer-1 + reinforcement_layer_count) && layer_number < (reinforcement_start_layer + reinforcement_layer_count + reinforcement_top_skin_layers);
                 bool use_skin_on_layer = layer_number_on_fiber_bottom || layer_number_on_fiber_top;
 
                 logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);

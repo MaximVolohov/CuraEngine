@@ -462,7 +462,7 @@ namespace cura
         const size_t reinforcement_layer_count = mesh.settings.get<size_t>("reinforcement_layer_count");
        // const EReinforcementType reinforcement_type = mesh.settings.get<EReinforcementType>("reinforcement_type");
         const EReinforcementPattern reinforcement_pattern = mesh.settings.get<EReinforcementPattern>("fiber_infill_pattern");
-        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer && layer_nr < (reinforcement_start_layer + reinforcement_layer_count) && (reinforcement_pattern == EReinforcementPattern::LINES || reinforcement_pattern == EReinforcementPattern::GRID || reinforcement_pattern == EReinforcementPattern::CONCENTRIC))
+        if (reinforcement_enabled && layer_nr >= reinforcement_start_layer-1 && layer_nr < (reinforcement_start_layer + reinforcement_layer_count) && (reinforcement_pattern == EReinforcementPattern::LINES || reinforcement_pattern == EReinforcementPattern::GRID || reinforcement_pattern == EReinforcementPattern::CONCENTRIC))
         {
             Polygons offsetted_infill = infill.offset(infill_skin_overlap);
             double area = offsetted_infill.area();
