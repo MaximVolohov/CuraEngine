@@ -629,13 +629,15 @@ namespace cura
 
             layer_plan_buffer.handle(gcode_layer, gcode);
         }
+        
+        const coord_t interface_layer_height = train.settings.get<coord_t>("raft_interface_thickness");
+        const coord_t comb_offset = train.settings.get<coord_t>("raft_interface_line_spacing");
+        const size_t num_interface_layers = train.settings.get<size_t>("raft_interface_layers");
 
+        for (LayerIndex raft_interface_layer  = 1; static_cast<size_t>(raft_interface_layer ) <= num_interface_layers; ++raft_interface_layer)
         { // raft interface layer
-            const LayerIndex layer_nr = initial_raft_layer_nr + 1;
-            const coord_t layer_height = train.settings.get<coord_t>("raft_interface_thickness");
-            z += layer_height;
-            const coord_t comb_offset = train.settings.get<coord_t>("raft_interface_line_spacing");
-
+            const LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer ;
+            z += interface_layer_height;
             std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_interface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
             for (FanSpeedLayerTimeSettings &fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_interface)
             {
@@ -645,13 +647,13 @@ namespace cura
                 fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
             }
 
-            LayerPlan &gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, train.settings.get<coord_t>("raft_interface_line_width"), train.settings.get<coord_t>("travel_avoid_distance"));
+            LayerPlan &gcode_layer = *new LayerPlan(storage, layer_nr, z, interface_layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, train.settings.get<coord_t>("raft_interface_line_width"), train.settings.get<coord_t>("travel_avoid_distance"));
             gcode_layer.setIsInside(true);
 
             gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
             current_extruder_nr = extruder_nr;
 
-            Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
+            Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
 
             Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
             raft_outline_path.simplify();                                                                                                   // Remove those micron-movements.
@@ -659,7 +661,7 @@ namespace cura
             Polygons raftLines;
             Polygons output_gaps;
             int offset_from_poly_outline = 0;
-            AngleDegrees fill_angle = train.settings.get<size_t>("raft_surface_layers") > 0 ? 45 : 90;
+            AngleDegrees fill_angle = (train.settings.get<size_t>("raft_surface_layers")+num_interface_layers - raft_interface_layer) % 2 ? 45 : 135;
             constexpr bool zig_zaggify_infill = true;
             constexpr bool connect_polygons = true; // why not?
 
@@ -682,12 +684,13 @@ namespace cura
 
             layer_plan_buffer.handle(gcode_layer, gcode);
         }
+       
 
         coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
 
         for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= train.settings.get<size_t>("raft_surface_layers"); raft_surface_layer++)
         {                                                                                   // raft surface layers
-            const LayerIndex layer_nr = initial_raft_layer_nr + 2 + raft_surface_layer - 1; // 2: 1 base layer, 1 interface layer
+            const LayerIndex layer_nr = initial_raft_layer_nr + 1 +num_interface_layers + raft_surface_layer - 1; // 2: 1 base layer, 1 interface layer
             z += layer_height;
             const coord_t comb_offset = train.settings.get<coord_t>("raft_surface_line_spacing");
 
