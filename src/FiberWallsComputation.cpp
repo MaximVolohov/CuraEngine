@@ -25,7 +25,7 @@ namespace cura
         const size_t reinforcement_layer_count = settings.get<size_t>("reinforcement_layer_count");
         size_t fiber_inset_count = settings.get<size_t>("reinforcement_concentric_fiber_rings");
 
-        if (!reinforcement_enabled || layer_nr < reinforcement_start_layer || layer_nr >= (reinforcement_start_layer + reinforcement_layer_count) || fiber_inset_count == 0)
+        if (!reinforcement_enabled || layer_nr < reinforcement_start_layer-1 || layer_nr >= (reinforcement_start_layer + reinforcement_layer_count) || fiber_inset_count == 0)
         {
             return;
         }
