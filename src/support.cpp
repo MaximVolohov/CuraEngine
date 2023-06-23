@@ -854,7 +854,15 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const double tan_angle = tan(angle) - 0.01;  // the XY-component of the supportAngle
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, false).offset(xy_distance);
     // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) \
+        shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
+               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness, support_line_width, sloped_area_detection_width) \
+        schedule(dynamic)
+#endif
+
     for (unsigned int layer_idx = 1; layer_idx < layer_count; layer_idx++)
     {
         Polygons outlines = storage.getLayerOutlines(layer_idx, false);
@@ -1054,7 +1062,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         const int max_checking_layer_idx = std::min(static_cast<int>(storage.support.supportLayers.size())
                                                   , static_cast<int>(layer_count - (layer_z_distance_top - 1)));
         const size_t max_checking_idx_size_t = std::max(0, max_checking_layer_idx);
-#pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
+    #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
+
         for (size_t layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
         {
             support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, false));

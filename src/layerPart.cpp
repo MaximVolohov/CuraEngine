@@ -49,7 +49,13 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
-#pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
+
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
+    #pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) shared(mesh, slicer, total_layers) schedule(dynamic)
+#endif
+
     for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
