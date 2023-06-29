@@ -858,8 +858,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) \
-        shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
-               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness, support_line_width, sloped_area_detection_width) \
+        shared(xy_disallowed_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
+               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness) \
         schedule(dynamic)
 #endif
 
@@ -1065,7 +1065,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 #if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
 #else
-    #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
+    #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_idx_size_t, layer_z_distance_top) schedule(dynamic)
 #endif // defined(__GNUC__) && __GNUC__ <= 8
 
         for (size_t layer_idx = 0; layer_idx < max_checking_idx_size_t; layer_idx++)
